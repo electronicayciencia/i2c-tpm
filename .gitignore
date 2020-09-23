@@ -1,0 +1,10 @@
+ibm-tpm/*
+tpmtool-go/*
+trousers/*
+*.swp
+*.swo
+*.o
+*.so
+*.a
+*.bak
+
