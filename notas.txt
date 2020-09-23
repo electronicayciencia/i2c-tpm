@@ -1,0 +1,105 @@
+Self-tests:
+  - The deterministic RNG produces blocks of 160 bits. Each subsequent 160-bit block output from the RNG is compared to the previous block. The test fails if any two compared 160-bit sequences are equal.
+
+Physical Presence authorization may be accomplished by setting a logic high voltage on the hardware pin at the time a service request is sent to the module (assertion of tpmGo bit in the TIS register [5]). 
+
+Failed Authentication Attempts Counter: The TOE accumulates the total number of failed authorization attempts on any entity in the FAILCOUNT register.
+
+The TOE contains an active metal shield that covers the internal TPM circuitry and memory components. Cutting, removing or modifying the shield layer will cause the TPM to Reset and enter a FAIL mode.
+
+
+TPM Structures (.c):
+https://chromium.googlesource.com/chromiumos/third_party/tpm-emulator/+/6b062e43d7bbc59af1aca33cb01393a4ecf1a280/tpm/tpm_structures.h
+
+https://trustedcomputinggroup.org/wp-content/uploads/TCG-TPM-I2C-Interface-Specification-v1.00.pdf
+
+
+Figure 3. Typical hardware implementation (TSSOP28 package): de ST. Pines más imporantes en comun con Atmel.
+
+
+A Practical Guide to Trusted Computing: Writing a TPM Device Driver
+https://www.informit.com/articles/article.aspx?p=1154764&seqNum=3
+
+
+
+ - Locality 4: Trusted hardware component. This is used by the D-CRTM to establish the Dynamic RTM. 125 2
+ - Locality 3: Auxiliary components. Use of this is optional and, if used, it is implementation dependent.
+ - Locality 2: Dynamically Launched OS (Dynamic OS) “runtime” environment.
+ - Locality 1: An environment for use by the Dynamic OS.
+ - Locality 0: The Static RTM, its chain of trust and its environment.
+ - Locality None: This locality is defined for using TPM 1.1 type I/O-mapped addressing. The TPM behaves as if Locality 0 is selected.
+
+TPM 1.1b -> commands (vendor specific)
+TPM 1.2 -> memory mapping
+  FED4 L000 - FED4 LFFF -> L is locality (0-4).
+
+
+
+I2C:
+The default 7-bit I2C device address is 0x2E, the 8th bit indicates the data direction.
+ - 0x5D for an I2C read request and 
+ - 0x5C for an I2C write transmission.
+
+Is required that the bus master supports the clock stretching mechanism
+
+The I2C-TPM SHALL support a supply and I/O voltage of 1.8V or 3.3V.
+
+PIRQ# = PCI-IRQ. IRQ = 0-15; PIRQ > 15
+
+Multi byte: In all cases, except the TPM_STS register, the access to such multi-byte registers is only possible from the register base address.
+
+I2C registers:
+0x00         TPM_LOC_SEL
+0x04         TPM_ACCESS  
+0x18 – 0x1B	 TPM_STS
+0x24         TPM_DATA_FIFO
+0x30         TPM_I2C_INTERFACE_CAPABILITY
+0x48         TPM_DID_VID
+0x4C         TPM_RID 
+
+Reading of the burstCount may be critical when read in single bytes because the low part might change when the high part is read (and vice versa). Therefore it is strongly recommended to read the whole burstCount in one cycle.
+
+
+Lo datos se escriben a TPM_DATA_FIFO en rafagas de Burstcount escrituras.
+
+
+Los valores de tags y ordinales de comando se definen en el documento de estructuras.
+
+(https://github.com/torvalds/linux/blob/master/include/linux/tpm_command.h)
+/* Command TAGS */
+#define TPM_TAG_RQU_COMMAND             193
+#define TPM_TAG_RQU_AUTH1_COMMAND       194
+#define TPM_TAG_RQU_AUTH2_COMMAND       195
+#define TPM_TAG_RSP_COMMAND             196
+#define TPM_TAG_RSP_AUTH1_COMMAND       197
+#define TPM_TAG_RSP_AUTH2_COMMAND       198
+
+/* Command Ordinals */
+#define TPM_ORD_GETRANDOM               70
+#define TPM_ORD_OSAP                    11
+#define TPM_ORD_OIAP                    10
+#define TPM_ORD_SEAL                    23
+#define TPM_ORD_UNSEAL                  24
+
+
+
+https://github.com/srajiv/trousers/
+
+https://github.com/PeterHuewe/tpm-emulator
+
+
+
+
+
+
+La librería de TPM compila bien, pero las utilidades no.
+https://sourceforge.net/p/ibmswtpm/discussion/1137021/thread/9c05f6703c/?limit=250
+
+Usamos trousers:
+ - dos paquetes: TSS y tpm-tools
+ también están en la paquetería del sistema
+
+
+
+
+
