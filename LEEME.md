@@ -11,16 +11,17 @@ Es un emulador para practicar. Es conforme a la especificación TPM 1.2, no 2.0.
 https://sourceforge.net/projects/ibmswtpm/
 
 Tiene tres directorios:
-    /libtpm      
-    /tpm         
-    /tpm_proxy   
+
+ - /libtpm      
+ - /tpm         
+ - /tpm_proxy   
 
 El que nos interesa es `tpm`. Libtpm no he conseguido compilarlo con la libería OpenSSL 1.1. En el foro de soporte te dicen que uses trousers: 
 [hilo en el foro de sourceforge](https://sourceforge.net/p/ibmswtpm/discussion/1137021/thread/9c05f6703c/?limit=250).
 
 Leemos el README del directorio TPM para compilarlo.
 
-Una vez levantado escucha en un puerto TPC.
+Una vez levantado escucha en un puerto TCP.
 
 
 ### Api TSS
