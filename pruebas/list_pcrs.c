@@ -3,7 +3,7 @@
  *
  * Reinoso G.  2020/09/22
  *
- * Compile with: gcc -o listpcrs listpcrs.c -l tspi
+ * Compile with: gcc -o list_pcrs list_pcrs.c -l tspi
  */
 
 #include <stdio.h>
