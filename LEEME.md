@@ -292,15 +292,15 @@ Podría ser la clave de cifrado de una partición de disco.
 
 Ahora extendemos la PCR 0 una vez y la PCR 1 dos veces. Simulando que el sistema está en un estado X desde el arranque.
 
-   $ ./list_pcrs 
-   
-   PCR List
-   PCR00: b80de5d138758541c5f05265ad144ab9fa86d1db
-   PCR01: 850659b18eb6fb4ccdcb113ca4266eb945449466
-   PCR02: 0000000000000000000000000000000000000000
-   PCR03: 0000000000000000000000000000000000000000
-   PCR04: 0000000000000000000000000000000000000000
-   ...
+    $ ./list_pcrs 
+    
+    PCR List
+    PCR00: b80de5d138758541c5f05265ad144ab9fa86d1db
+    PCR01: 850659b18eb6fb4ccdcb113ca4266eb945449466
+    PCR02: 0000000000000000000000000000000000000000
+    PCR03: 0000000000000000000000000000000000000000
+    PCR04: 0000000000000000000000000000000000000000
+    ...
 
 Con el comando `tpm_sealdata` guardaremos la clave anterior condicionada a las PCRs 0, 1 y 2. 
 
