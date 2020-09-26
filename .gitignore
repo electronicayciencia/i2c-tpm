@@ -1,6 +1,8 @@
 ibm-tpm/*
 tpmtool-go/*
 trousers/*
+TPMManager/*
+aiktools/*
 *.swp
 *.swo
 *.o
