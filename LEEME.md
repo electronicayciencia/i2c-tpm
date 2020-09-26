@@ -238,11 +238,21 @@ En el log del TPM virtual se indica que ya tiene dueño:
 
     TPM_State_Trace: disable 0 p_deactive 0 v_deactive 0 owned 1 state 2
 
+Ejecutando el comando `list_keys` se muestra la SRK, con UUID 1, cuyo padre es la EK, con UUID 0:
+
+    $ ./list_keys 
+    Registered key 0:
+    Version: 1.1.0.0
+    UUID: 00000000 0000 0000 00 00 000000000001
+    parent UUID : 00000000 0000 0000 00 00 000000000000
+    auth: YES
+    vendor data: (0 bytes)
+
 La clave SRK tampoco sale del dispositivo y para usarla es necesario haberse autenticado con la debida contraseña.
 
 
-Prácticas
----------
+PCRs
+----
 
 
 ### Generar un número random
@@ -277,19 +287,20 @@ Como estamos operando con la *locality* 0, sólo podemos modificar las PCRs de l
     Tspi_TPM_PcrExtend: Locality is incorrect for attempted operation
 
 
-### Guardar un secreto
+## Guardar secretos
 
 La característica más distintiva de un TPM es poder guardar un secreto bajo una clave y ligado al estado actual del sistema.
 
-Este es el texto claro:
+Podría ser, por ejemplo, la clave privada de una ssesión SSH. O la clave de cifrado de una partición de disco o pendrive.
+
+
+Supongamos que este es nuestro texto claro:
 
     $ cat data/cleartext 
     Twas brillig, and the slithy toves
     Did gyre and gimble in the wabe;
     All mimsy were the borogoves,
     And the mome raths outgrabe.
-
-Podría ser la clave de cifrado de una partición de disco.
 
 Ahora extendemos la PCR 0 una vez y la PCR 1 dos veces. Simulando que el sistema está en un estado X desde el arranque.
 
@@ -342,19 +353,12 @@ Este es el fichero encriptado:
     -----END TSS-----
 
 
+### Descifrar el secreto
 
-### Descifrar un secreto
 
+Para desencriptarlo usamos el comando `tpm_unsealdata`. Pero el desencriptado sólo funcionará si las PCRs 0, 1 y 2 tienen el mismo valor que cuando se cifró. 
 
-Para desencriptarlo usamos el comando `tpm_unsealdata`.
-
-    $ tpm_unsealdata -i data/ciphertext.tss -z 
-    Twas brillig, and the slithy toves
-    Did gyre and gimble in the wabe;
-    All mimsy were the borogoves,
-    And the mome raths outgrabe.
-
-Pero el desencriptado sólo funcionará si las PCRs 0, 1 y 2 tienen el mismo valor que cuando se cifró. Si extendemos por ejemplo la PCR 2:
+De mquera que si extendemos artificalmente por ejemplo la PCR 2:
 
     $ ./extend_pcr 2
     PCR02: b80de5d138758541c5f05265ad144ab9fa86d1db
@@ -367,12 +371,12 @@ Pero el desencriptado sólo funcionará si las PCRs 0, 1 y 2 tienen el mismo val
     PCR03: 0000000000000000000000000000000000000000
     PCR04: 0000000000000000000000000000000000000000
 
-Ahora no funciona.
+No va a funcionar. No tendremos acceso a la partición cifrada o no podremos entrar a las máquinas por SSH.
 
     $ tpm_unsealdata -i data/ciphertext.tss -z
     $ 
 
-Las PCRs (salvo la 16 y la 23) no se pueden reinciar a cero. Por tanto la única forma de que vuelvan a tener el mismo valor que cuando se cifró la clave es reiniciar el sistema (apagar la TPM) reproducir los mismos pasos.
+Las PCRs (salvo la 16 y la 23) no se pueden reinciar a cero. Por tanto la única forma de que vuelvan a tener el mismo valor que cuando se cifró la clave es reiniciar el sistema (apagar la TPM) reproducir exactamente los mismos pasos. Para dar lugar al mismo hash SHA1.
 
 Inicializar TPM (equivalente a reiniciar el sistema cortando la alimentación):
 
@@ -400,6 +404,391 @@ Y ahora sí podemos acceder a la clave:
 
 
 
+
+## Atestación o certificación (attestation)
+
+La atestación consiste en pedirle al TPM que nos firme el estado de una o varias PCRs en el momento actual. Es útil cuando queremos asegurarnos remotamente de que el equipo cumple especificaciones. 
+
+Por ejemplo, podríamos solicitar un informe firmado de las PCRs que contienen
+ - el hash de la configuración de la BIOS
+ - el hash del sector de arranque del sistema.
+ - El hash del nivel de parchado del sistema
+
+Se podría evaluar esta información a la hora de acceder por ejemplo a una VPN y denegar el acceso a la VPN si el valor de estas PCR no se corresponde con alguno de los esperados. El sistema ha sido modificado.
+
+
+Se necesita el paquete `tpm-quote-tools`. Compilarlo o instalarlo de la paquetería del sistema.
+
+Nunca se firma nada ni con la SRK ni mucho menos con la EK por motivos de privacidad, ya que esta clave identifica unívocamente el TPM y habitualmente no se puede borrar ni cambiar.
+
+Por esta razón, antes de certificar nada con el TPM necesitamos crear una identidad (AIK).
+
+El TPM tampoco dejará que firmemos cualquier cosa con una clave AIK, sólo cosas generadas por él mismo. Por ejemplo otras claves o un informe de PCRs.
+
+
+### Crear identidad
+
+El comando `tpm_mkaik` creará una nueva clave RSA. Se necesita autorización porque el TPM va a emplear la SRK para cifrar la parte privada.
+
+   $ tpm_mkaik -z blob pubkey
+
+Tras unos comandos al TPM, nos da una respuesta como esta:
+
+
+    TPM_IO_Write: length 911
+    00 C6 00 00 03 8F 00 00 00 00 01 01 00 00 00 12 
+    00 00 00 00 00 00 00 00 01 00 01 00 02 00 00 00 
+    0C 00 00 08 00 00 00 00 02 00 00 00 00 00 00 00 
+    00 00 00 01 00 CD E2 9A 1D 2B DA A3 6D 2F 35 34 
+    72 38 20 8C 3F C0 08 85 0F 0C 18 BD 48 86 62 5D 
+    [...]
+    EA 6A 12 37 1F BD 52 3E CA FE 00 38 75 A6 12 9C 
+    75 B9 08 63 6B 15 7E 5F DE CB 03 73 9D 26 69 
+
+
+La información que contiene el binario sigue la especificación de TGC, es la siguiente:
+
+
+    TPM's TPM_MakeIdentity response: 
+
+    00 C6        tag
+    00 00 03 8F  len
+    00 00 00 00  result: ok
+    
+    TPM_KEY
+      01 01 00 00      TPM_STRUCT_VER
+      00 12            TPM_KEY_USAGE: TPM_KEY_IDENTITY 
+      00 00 00 00      TPM_KEY_FLAGS
+      00               TPM_AUTH_DATA_USAGE: TPM_AUTH_NEVER
+      TPM_KEY_PARMS  
+        00 00 00 01    TPM_ALGORITHM_ID: TPM_ALG_RSA
+        00 01          TPM_ENC_SCHEME: TPM_ES_NONE 
+        00 02          TPM_SIG_SCHEME: TPM_SS_RSASSAPKCS1v15_SHA1
+        00 00 00 0C    parmSize: 12
+        TPM_RSA_KEY_PARMS
+          00 00 08 00  keyLength: 2048
+          00 00 00 02  numPrimes: 2
+          00 00 00 00  exponentSize: 0
+      00 00 00 00      PCRInfoSize 
+      TPM_STORE_PUBKEY
+        00 00 01 00    keyLength: 256 
+        CD E2 ... 1D 57 RSA modulus
+      00 00 01 00      encDataSize: 256
+      A2 74 ... 91 5B  encrypted TPM_STORE_ASYMKEY
+    
+    00 00 01 00        identityBindingSize: 256 
+    49 0A ... 6A DA    identityBinding
+    57EA3CEB2CAD34CF35072644D9919FE941462A10   nonce
+    00                 continueSrkSession: false
+    035A7DF647F5C9556718154E32EC6B2EF358AA90   srkAuth
+    3140EB8151FEA2577E7FEA6A12371FBD523ECAFE   nonceEven
+    00                 continueAuthSession: false
+    3875A6129C75B908636B157E5FDECB03739D2669   resAuth
+
+
+La información se guarda en dos ficheros: `pubkey` y `blob`.
+
+Blob contiene tanto la parte pública (módulo y exponente) como la parte privada cifrada (llamada *encrypted Data* en la estructura anterior). 
+
+En la parte privada sólo está uno de los dos factores. El otro se obtiene dividiendo el módulo.
+
+Pubkey contiene las estructuras TPM_KEY_PARMS y TPM_STORE_PUBKEY. Módulo y exponente de la clave RSA. 
+
+Se supone que `pubkey` usa el formato BER. Sin embargo la especificación TSS define una estructura que no es del todo compatible con ASN.1.
+
+    $ openssl asn1parse -in pubkey -inform der
+          0:d=0  hl=4 l= 300 cons: SEQUENCE          
+          4:d=1  hl=2 l=   1 prim: INTEGER           :01
+          7:d=1  hl=2 l=   1 prim: INTEGER           :02
+         10:d=1  hl=2 l=   4 prim: INTEGER           :BAD INTEGER:[0000011C]
+         16:d=1  hl=4 l= 284 prim: OCTET STRING      [HEX DUMP]:00000001000100020000000C0000...
+
+Ese *BAD INTEGER* va a causar problemas. Según TSS ese campo tiene una longitud fija de 4 bytes, mientras que ASN.1 dice que los enteros deben guardarse usando el mínimo número de bytes necesarios. En este caso 2 (`01 1C`). Tal vez versiones anteriores fueran más tolerantes, pero la librería OpenSSL 1.1.1 no se lo traga. 
+
+De hecho, cuando lo vayamos a usar luego con `tpm_verifyquote` nos dará un error interno. Lo arreglaremos más adelante.
+
+
+### Crear un UUID
+
+Cada clave tiene asociado un identificador único, UUID. Son 16 bytes casi todos aleatorios. Lo podríamos crear a mano pero hay una utilidad para ello:
+
+    $ tpm_mkuuid uuid
+
+Nos deja el fichero uuid con este contenido:
+
+    $ hd uuid
+    00000000  36 4e 3e 18 d8 97 42 4f  84 0d 84 be cb 57 a4 f9  |6N>...BO.....W..|
+    00000010
+
+
+### Cargar la clave AIK
+
+Las claves no se guardan en el TPM, salvo SRK y EK sino que se exportan -cifradas- y las guarda el Sistema Operativo.
+
+Cuando hace falta usar alguna, se cargan temporalmente en el TPM la clave necesaria así como sus ancestros hasta completar la cadena de confianza. Al cargar cada clave le asignamos un UUID para poder referirnos a ella.
+
+Los identificadores no van ligados a la clave hasta el momento de la carga.
+
+Cargamos en el TPM la clave privada guardada en `blob` asignándole el identificador en `uuid`.
+
+    $ tpm_loadkey blob uuid
+
+Si listamos las claves, ahora aparece la SRK y otra más:
+
+    $ ../pruebas/list_keys
+    Registered key 0:
+    Version: 1.1.0.0
+    UUID: 183e4e36 97d8 4f42 84 0d 84becb57a4f9
+    parent UUID : 00000000 0000 0000 00 00 000000000001
+    auth: NO
+    vendor data : "trousers 0.3.14" (16 bytes)
+    
+    Registered key 1:
+    Version: 1.1.0.0
+    UUID: 00000000 0000 0000 00 00 000000000001
+    parent UUID : 00000000 0000 0000 00 00 000000000000
+    auth: YES
+    vendor data: (0 bytes)
+
+La AIK con identificador `183e4e36 97d8 4f42 84 0d 84becb57a4f9` desciende de `00000000 0000 0000 00 00 000000000001` (TSS_UUID_SRK). Y esta a su vez de la EK con ID cero.
+
+
+### Firmar PCRs
+
+
+Solicitaremos un informe firmado de las PCRs 0 y 7, cuyo contenido es el siguiente:
+
+    $ pruebas/list_pcrs 
+    
+    PCR List
+    PCR00: 850659b18eb6fb4ccdcb113ca4266eb945449466
+    ...
+    PCR07: ad919ad2b122e5741612e16329aa7626b63ada73
+    ...
+
+
+Antes de comenzar guardaremos un identificador random de 20 bytes, podría ser el sha1 de algo o simplemente aleatorio. Lo llamaremos `nonce`.
+
+    $ openssl rand 20 > nonce
+
+    $ hd nonce 
+    00000000  5b eb ba af 36 43 bb 9b  c5 f3 ed b6 fc 7a 40 75  |[...6C.......z@u|
+    00000010  7b 2f 5d e0                                       |{/].|
+    00000014
+
+Ahora pedimos que se nos firme usando la clave `uuid` ya cargada, un informe con el identificador aleatorio y el valor de las PCRs 0 y 7.
+
+    $ tpm_getquote uuid nonce quote 0 7
+
+El TPM va a crear un hash SHA1 con las PCR seleccionadas. Después compondrá internamente una estructura especial llamada TPM_QUOTE_INFO con este hash, nuestro **nonce** y algunos datos estáticos. Calculará el SHA1 de dicha estructura y firmará este último con la clave **uuid**. El resultado nos lo devolverá y este comando lo deja en el archivo `quote`:
+
+
+    $ hd quote 
+    00000000  34 b2 ab a7 29 11 12 3e  ca 0c f8 b4 a8 65 a5 a2  |4...)..>.....e..|
+    00000010  7a 4d 48 bf e2 ae 1f bc  d6 11 a8 c6 97 8c eb 94  |zMH.............|
+    00000020  d9 e6 43 4f 7f 3d 2e 66  90 0f ff 45 92 4b 75 5a  |..CO.=.f...E.KuZ|
+    00000030  94 cb 20 83 b8 71 15 39  59 28 b5 69 76 23 58 c9  |.. ..q.9Y(.iv#X.|
+    00000040  16 c0 8c 16 55 2e 14 e3  7a b1 04 ae b5 a1 c1 d7  |....U...z.......|
+    00000050  b4 8f 14 77 4c ba b8 87  80 13 95 14 29 bc 2e 06  |...wL.......)...|
+    00000060  b7 f8 50 ef 19 b5 ce c0  77 34 ad 22 50 ea 82 ff  |..P.....w4."P...|
+    00000070  bd 96 6e ba 3b e2 fd 71  55 7d e4 39 c6 b7 18 a1  |..n.;..qU}.9....|
+    00000080  85 5e 47 2b 09 6c 60 df  50 7b 01 70 2a 1f 4d 84  |.^G+.l`.P{.p*.M.|
+    00000090  a1 88 00 5d ae 3c 13 00  90 34 1f 52 12 1d fc 6c  |...].<...4.R...l|
+    000000a0  50 fa b1 3c f5 d2 53 54  04 07 25 dd 42 16 f3 9a  |P..<..ST..%.B...|
+    000000b0  68 12 37 7b b4 b9 90 3e  94 dc 5a 0d ce 3f ed 94  |h.7{...>..Z..?..|
+    000000c0  2b 3c 1e 05 8e 78 17 25  3e 4f 46 a8 e6 36 db a7  |+<...x.%>OF..6..|
+    000000d0  30 da 80 48 df fd 2d 6e  c9 ac 3f f1 4c e1 4b 52  |0..H..-n..?.L.KR|
+    000000e0  4d ef be cc 6f d2 08 bb  0d bd 8d 39 df f2 80 4b  |M...o......9...K|
+    000000f0  71 88 51 bc 75 1a 9e 9e  e8 55 a3 db ca 9c 1b ee  |q.Q.u....U......|
+
+
+
+Pero ¿qué contiene realmente `quote`?
+
+Se supone que es una firma, así que vamos desencriptarlo con la clave pública AIK que teníamos en `pubkey`.
+
+Para que openssl pueda utilizarla debemos tener la clave en formato DER X.509. 
+
+Una forma de hacerlo es generar un par RSA con OpenSSL y luego sustituir en la clave pública el módulo generado por el que tenemos en `pubkey`. Supongo que habrá utilidades para hacerlo, pero cambiarlo en binario es lo que tengo más a mano.
+
+Creamos clave privada de 2048, exponente F4 (0x10001) por defecto.
+
+    $ openssl genrsa -F4 -out private.pem 2048
+
+Escribimos la pública. Nos interesa el formato DER para sustituir luego este módulo:
+
+    $ openssl rsa -in private.pem -outform DER -pubout -out public.der
+
+Vemos el módulo y el exponente:
+
+    $ openssl rsa -pubin -inform der -in public.der -text
+    RSA Public-Key: (2048 bit)
+    Modulus:
+        00:98:c6:c0:b5:11:5f:45:c0:3c:10:24:c7:5e:dd:
+        ...
+        a9:15:90:98:b0:56:5d:32:a2:ff:71:bb:68:f6:4d:
+        48:09
+    Exponent: 65537 (0x10001)
+
+Editando el fichero lo sustituimos por el módulo del TPM. Importante, los módulos en openssl empiezan por 00.
+
+    $ openssl rsa -pubin -inform der -in public_openssl.der -text
+    RSA Public-Key: (2048 bit)
+    Modulus:
+        00:cd:e2:9a:1d:2b:da:a3:6d:2f:35:34:72:38:20:
+        ...
+        30:24:a4:fe:fc:60:59:3a:d7:18:c9:63:37:3d:69:
+        1d:57
+    Exponent: 65537 (0x10001)
+
+Desciframos con la clave pública:
+
+    $ openssl rsautl \
+      -verify \
+      -in ./quote \
+      -keyform DER \
+      -pubin \
+      -inkey public_openssl.der | hd
+    00000000  30 21 30 09 06 05 2b 0e  03 02 1a 05 00 04 14 f0  |0!0...+.........|
+    00000010  12 53 ff 49 7e ae 7f a1  55 5c 34 a8 22 c2 49 88  |.S.I~...U\4.".I.|
+    00000020  35 c5 8b                                          |5..|
+    00000023
+
+No nos da error de invalid padding, eso es bueno. Significa que el descifrado ha ido bien. 
+
+Porque si hubiéramos utilizado otro módulo RSA distinto para hacer el descifrado habría sucedido esto:
+
+    $ openssl rsautl -verify -in ./quote -keyform DER -pubin -inkey another_public.der | hd
+    RSA operation error
+    140673277608384:error:0407008A:rsa routines:RSA_padding_check_PKCS1_type_1:invalid padding:../crypto/rsa/rsa_pk1.c:67:
+    140673277608384:error:04067072:rsa routines:rsa_ossl_public_decrypt:padding check failed:../crypto/rsa/rsa_ossl.c:582:
+
+
+Cuando se hace una firma, nunca se firma sólo el hash. Sino una estructura ASN.1 donde indica el tipo de hash. Añadimos la opción `-asn1prse` para que nos la decodifique:
+
+    $ openssl rsautl -verify -in quote -keyform DER -pubin -inkey public_openssl.der -asn1parse 
+        0:d=0  hl=2 l=  33 cons: SEQUENCE          
+        2:d=1  hl=2 l=   9 cons:  SEQUENCE          
+        4:d=2  hl=2 l=   5 prim:   OBJECT            :sha1
+       11:d=2  hl=2 l=   0 prim:   NULL              
+       13:d=1  hl=2 l=  20 prim:  OCTET STRING      
+          0000 - f0 12 53 ff 49 7e ae 7f-a1 55 5c 34 a8 22 c2 49   ..S.I~...U\4.".I
+          0010 - 88 35 c5 8b                                       .5..
+
+El hash de la estructura con las PCRs y el nonce -lo que nos ha firmado el TPM- es:
+
+    f01253ff497eae7fa1555c34a822c2498835c58b   
+
+Sabemos que está cifrado con la clave SRK. Pero en cuanto a las PCRs, ese hash no nos dice nada.
+
+
+### Generar hash de PCRs
+
+El comando `tpm_getpcrhash` genera un fichero `hash` con el que luego podremos verificar el informe anterior.
+
+    $ tpm_getpcrhash uuid hash pcrvals 0 7
+
+crea un fichero `pcrvals`con el contenido actual de las PCRs 0 y 7:
+
+    $ cat pcrvals 
+    0=850659B18EB6FB4CCDCB113CA4266EB945449466
+    7=AD919AD2B122E5741612E16329AA7626B63ADA73
+
+Así como un fichero `hash`:
+
+    $ hd hash
+    00000000  00 36 51 55 54 32 0e 00  00 00 00 00 00 00 0e 00  |.6QUT2..........|
+    00000010  00 00 00 00 00 00 00 00  00 00 00 03 81 00 00 01  |................|
+    00000020  c1 e5 49 45 35 78 8f 5e  dd e1 2e e1 75 f3 0e 0f  |..IE5x.^....u...|
+    00000030  8f ea 99 54                                       |...T|
+    00000034
+
+Que en realidad no es un hash, sino una estructura de tipo `TPM_QUOTE_INFO2` (se sabe por la marca *QUT2*), con la información sobre las PCRs seleccionadas. 
+
+    TPM_QUOTE_INFO2
+      00 36                TPM_TAG_QUOTE_INFO2
+      51 55 54 32          fixed: QUT2
+      0e000000000000000e0000000000000000000000  externalData (nonce)
+        TPM_PCR_INFO_SHORT
+            TPM_PCR_SELECTION
+              00 03        sizeOfSelect
+              81 00 00     pcrSelect
+          01               localityAtRelease
+          c1e5494535788f5edde12ee175f30e0f8fea9954 digestAtRelease
+    
+
+Esa es la estructura que ha firmado interiormente el TPM. Sólo que el TPM ha usado con nuestro `nonce` como external data mientras que `tpm_getpcrhash` usa uno cualquiera. Al final lo que interesa es el hash del final, llamado **digestAtRelease**.
+
+Como curiosidad, podríamos el fichero `hash` y remplazar en la estructura el nonce por el que tenemos nosotros en el fichero `nonce`, tal que así:
+
+    00 36 
+    51 55 54 32 
+    5b eb ba af 36 43 bb 9b c5 f3 ed b6 fc 7a 40 75 7b 2f 5d e0   <- nuestro nonce
+    00 03
+    81 00 00 
+    01 
+    c1 e5 49 45 35 78 8f 5e dd e1 2e e1 75 f3 0e 0f 8f ea 99 54   <- hash PCRs que venía
+
+Si calculamos el SHA1 de esa estructura saldrá:
+
+    $ xxd -r -p /tmp/hash_nonce | sha1sum 
+    f01253ff497eae7fa1555c34a822c2498835c58b  -
+
+Exactamente *el mismo* hash que habíamos obtenido en la sección anterior.
+
+
+### Verificar la firma
+
+Por supuesto hay un comando llamado `tpm_verifyquote` para verificar la firma sin tener que hacerlo a mano.
+
+Se debe indicar:
+ - el fichero donde está la parte pública.
+ - la estructura que contiene el hash de las PCRs
+ - nuestro nonce
+ - el informe firmado `quote`.
+
+El programa hará las validaciones que hicimos antes y dirá si la firma es correcta o no:
+
+    $ tpm_verifyquote pubkey hash nonce quote 
+    Error while decoding public key. Error code: TSS_E_INTERNAL_ERROR
+
+Vaya. Ya lo sabía yo.
+
+Al depurar, el error salta en la función `Tspi_DecodeBER_TssBlob` que a su vez se apoya en las funciones ASN.1 de OpenSSL. ¿Os acordáis al principio cuando dije que "Ese *BAD INTEGER* va a causar problemas". Pues aquí esta, la clave tal como está no carga.
+
+Editamos el fichero `pubkey` para hacerlo **compliant**. Es suficiente con eliminar los dos octetos innecesarios del entero y corregir la longitud del conjunto:
+
+    $ openssl asn1parse -in pubkey_compliant -inform der
+        0:d=0  hl=4 l= 298 cons: SEQUENCE          
+        4:d=1  hl=2 l=   1 prim: INTEGER           :01
+        7:d=1  hl=2 l=   1 prim: INTEGER           :02
+       10:d=1  hl=2 l=   2 prim: INTEGER           :011C
+       14:d=1  hl=4 l= 284 prim: OCTET STRING      [HEX DUMP]:00000001...1D57
+
+Ya está, ya se puede parsear bien.
+
+Ahora ya sí, finalmente:
+
+    $ tpm_verifyquote pubkey_compliant hash nonce quote 
+    $
+
+No dice nada porque la firma es corecta.
+
+Si no lo fuera diría algo como:
+
+    $ tpm_verifyquote pubkey_compliant hash other_nonce quote 
+    Error while verifying signature. Error code: TSS_E_FAIL
+
+
+Ya podríamos haber descargado la AIK. Puesto que para la verificación no es necesario hacer uso de las funciones del TPM.
+
+    $ tpm_unloadkey uuid
+
+Con esto concluye la sección sobre **attestation**.
+
+
+
+
 ## Bibliografía
 
 Emulation of TPM on Raspberry Pi - Marcus Sundberg & Erik Nilsson
@@ -420,6 +809,7 @@ https://resources.infosecinstitute.com/linux-tpm-encryption-initializing-and-usi
 A Practical Guide to TPM 2.0
 https://link.springer.com/book/10.1007/978-1-4302-6584-9
 
-
 tpm2-software/tpm2-tss
 https://github.com/tpm2-software/tpm2-tss
+
+
