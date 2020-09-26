@@ -1,6 +1,12 @@
 Prácticas con TPM virtual
 =========================
 
+Este manual describe la instalación de un TPM software conforme a la especificación TGC 1.2. Así como el software para usarlo.
+
+Exploramos con detalle los usos más habituales como listar PCRs, cifrar y descifrar secretos y atestación.
+
+
+
 Instalación
 -----------
 
@@ -287,7 +293,11 @@ Como estamos operando con la *locality* 0, sólo podemos modificar las PCRs de l
     Tspi_TPM_PcrExtend: Locality is incorrect for attempted operation
 
 
-## Guardar secretos
+
+
+
+Guardar secretos
+----------------
 
 La característica más distintiva de un TPM es poder guardar un secreto bajo una clave y ligado al estado actual del sistema.
 
@@ -405,14 +415,17 @@ Y ahora sí podemos acceder a la clave:
 
 
 
-## Atestación o certificación (attestation)
+
+
+Atestación o certificación (attestation)
+----------------------------------------
 
 La atestación consiste en pedirle al TPM que nos firme el estado de una o varias PCRs en el momento actual. Es útil cuando queremos asegurarnos remotamente de que el equipo cumple especificaciones. 
 
 Por ejemplo, podríamos solicitar un informe firmado de las PCRs que contienen
  - el hash de la configuración de la BIOS
  - el hash del sector de arranque del sistema.
- - El hash del nivel de parchado del sistema
+ - el hash del nivel de parcheado del sistema
 
 Se podría evaluar esta información a la hora de acceder por ejemplo a una VPN y denegar el acceso a la VPN si el valor de estas PCR no se corresponde con alguno de los esperados. El sistema ha sido modificado.
 
