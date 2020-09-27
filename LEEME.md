@@ -1,9 +1,39 @@
 Prácticas con TPM virtual
 =========================
 
-Este manual describe la instalación de un TPM software conforme a la especificación TGC 1.2. Así como el software para usarlo.
+Este manual describe la instalación de un TPM software conforme a la especificación TGC 1.2. Así como el software para practical con él en Linux.
 
-Exploramos con detalle los usos más habituales como listar PCRs, cifrar y descifrar secretos y atestación.
+Exploramos con detalle las posibilidades más habituales como listar PCRs, cifrar y descifrar secretos y atestación.
+
+
+- [Instalación](#instalación)
+  * [Software TPM 1.2](#software-tpm-12)
+  * [Api TSS](#api-tss)
+- [Primer arranque](#primer-arranque)
+  * [Inicialización del TPM en el arranque](#inicialización-del-tpm-en-el-arranque)
+  * [Inicialización del demonio TSCD](#inicialización-del-demonio-tscd)
+  * [Habilitar TPM](#habilitar-tpm)
+  * [Activar el TPM](#activar-el-tpm)
+  * [Crear Endorsement Key](#crear-endorsement-key)
+  * [Tomar posesión](#tomar-posesión)
+- [PCRs](#pcrs)
+  * [Generar un número random](#generar-un-número-random)
+  * [Extender PCR](#extender-pcr)
+- [Guardar secretos](#guardar-secretos)
+  * [Descifrar el secreto](#descifrar-el-secreto)
+- [Atestación o certificación (attestation)](#atestación-o-certificación-attestation-)
+  * [Crear identidad](#crear-identidad)
+  * [Crear un UUID](#crear-un-uuid)
+  * [Cargar la clave AIK](#cargar-la-clave-aik)
+  * [Firmar PCRs](#firmar-pcrs)
+  * [Generar hash de PCRs](#generar-hash-de-pcrs)
+  * [Verificar la firma](#verificar-la-firma)
+- [Bibliografía](#bibliografía)
+  * [Especificaciones oficiales](#especificaciones-oficiales)
+  * [Manuales y guías](#manuales-y-guías)
+  * [Ataques](#ataques)
+  * [Experimentación](#experimentación)
+
 
 
 
@@ -34,11 +64,15 @@ Una vez levantado escucha en un puerto TCP.
 
 La capa de software se llama TrouSerS. Tiene un demonio tscd que escucha en el puerto 30003 y se comunica con el TPM software.
 
-Hay que bajar los paquetes TSS y tpm-tools. También están en la paquetería del sistema.
+Hay que bajar los paquetes trousers y tpm-tools. Están en la paquetería del sistema.
 
 
 Primer arranque
 ---------------
+
+Se trata de arrancar los servicios y inicializar el chip. Normalmente el fabricante o el proveedor nos dará el TPM listo para usar o emplearemos comandos de la BIOS.
+
+Pero aquí el TPM el software, ni el fabricante nos lo ha dado activado ni tampoco tenemos BIOS.
 
 ### Inicialización del TPM en el arranque
 
@@ -46,11 +80,16 @@ Ejecutar servidor de TPM virtual de IBM
 
     TPM_PATH=. TPM_PORT=6543 TPM_DEBUG=0 ./tpm_server
 
-Como no tengo las utilidades, porque no compilaron, no puedo ejecutar `tmpbios` y en su lugar debo inicializarlo a mano. 
+Ahora que ya tenemos TPM, aunque sea virtual, arrancaríamos el demonio TSCD que actúa como driver en espacio de usuario. Pero no va a funcionar:
 
-Este paso lo haría la BIOS o UEFI antes de arrancar el sistema. Hasta entonces cualquier interacción devolverá el código 0x26 `TPM_INVALID_POSTINIT`.
+    TCS GetCapability failed with result = 0x26
 
-Lanzar comando TPM_Init (97):
+Hay que iniciar el TPM. Hasta entonces cualquier interacción devolverá el código 0x26 `TPM_INVALID_POSTINIT`.
+
+Este paso lo haría la BIOS o UEFI antes de arrancar el sistema. La documentación de IBM dice de usar `tpmbios`. Pero no lo tengo, porque no he podido compilar las utilidades. Debo inicializarlo a mano escribiendo los comando de inicialización directamente al "hardware". Por suerte son cortos:
+
+
+Lanzar comando TPM_Init (97) directamente al hardware:
 
     tag:        00 C1         (TPM_TAG_RQU_COMMAND)
     paramSize:  00 00 00 0A
@@ -64,8 +103,13 @@ O también con
     echo -e '\x00\xC1\x00\x00\x00\x0A\x00\x00\x00\x97' > /dev/tcp/127.0.0.1/6543
 
 
+Se supone que las tpm-tools tienen un comando *tpm_startup* para lo siguiente. Pero dicho comando espera encontrar el dispositivo en /dev/tpm0 y no en un puerto TCP. Aquí no funciona:
 
-Lanzar comando TPM_Startup (99), estado clear:
+    $ ./tpm_startup
+    Unable to open the device.
+
+
+Lanzamos a mano el comando TPM_Startup (99), estado clear:
 
     tag:         00 C1         (TPM_TAG_RQU_COMMAND)
     paramSize:   00 00 00 0C
@@ -111,7 +155,7 @@ Pedir la versión:
 
 Al hacer cualquier operación devuelve error TPM_Disabled (0x07).
 
-La habilitamos por medio de presencia física. Usamos presencia por software. Para lo cual hay que habilitar el comando:
+Lo habilitamos por medio de **presencia física**. Usamos presencia por software. Para lo cual hay que habilitar el comando:
 
     $ tpm_setpresence --enable-cmd
     Tspi_TPM_SetStatus failed: 0x00002006 - layer=tcs, code=0006 (6), Not implemented
@@ -533,6 +577,8 @@ Nos deja el fichero uuid con este contenido:
     00000000  36 4e 3e 18 d8 97 42 4f  84 0d 84 be cb 57 a4 f9  |6N>...BO.....W..|
     00000010
 
+Lo cual corresponde al UUID *183e4e36-97d8-4f42-840d-84becb57a4f9*. La ordenación de los UUIDs es un poco peculiar porque mezcla *big* y *little endian*. Versión 4, o sea, generado aleatoriamente.
+
 
 ### Cargar la clave AIK
 
@@ -676,8 +722,35 @@ Porque si hubiéramos utilizado otro módulo RSA distinto para hacer el descifra
     140673277608384:error:0407008A:rsa routines:RSA_padding_check_PKCS1_type_1:invalid padding:../crypto/rsa/rsa_pk1.c:67:
     140673277608384:error:04067072:rsa routines:rsa_ossl_public_decrypt:padding check failed:../crypto/rsa/rsa_ossl.c:582:
 
+El padding son unos bytes que están en el mensaje, no se nos muestran, pero al sistema le permiten saber si el descifrado tiene buena pinta o no. En realidad lo que hay cifrado es:
 
-Cuando se hace una firma, nunca se firma sólo el hash. Sino una estructura ASN.1 donde indica el tipo de hash. Añadimos la opción `-asn1prse` para que nos la decodifique:
+    $ openssl rsautl -verify -in quote -keyform DER -pubin -inkey public_openssl.der -raw | hd
+    00000000  00 01 ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
+    00000010  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
+    *
+    000000d0  ff ff ff ff ff ff ff ff  ff ff ff ff 00 30 21 30  |.............0!0|
+    000000e0  09 06 05 2b 0e 03 02 1a  05 00 04 14 f0 12 53 ff  |...+..........S.|
+    000000f0  49 7e ae 7f a1 55 5c 34  a8 22 c2 49 88 35 c5 8b  |I~...U\4.".I.5..|
+    00000100
+
+
+Tal como manda la especificación *PKCS #1*: 
+
+> Concatenate PS, the DER encoding T, and other padding to form the encoded message EM as
+> 
+>              EM = 0x00 || 0x01 || PS || 0x00 || T.
+
+Luego si el bloque descifrado no empieza por `00 01 FF`, mal.
+
+Por otro lado, en una firma nunca va sólo el hash. Sino una estructura ASN.1 donde indica el tipo: 
+
+> 2.  Encode the algorithm ID for the hash function and the hash
+>     value into an ASN.1 value of type DigestInfo 
+>     ...
+>     The first field identifies the hash function and the second
+>     contains the hash value. 
+
+Añadimos la opción `-asn1prse` para que nos la decodifique:
 
     $ openssl rsautl -verify -in quote -keyform DER -pubin -inkey public_openssl.der -asn1parse 
         0:d=0  hl=2 l=  33 cons: SEQUENCE          
@@ -747,7 +820,7 @@ Si calculamos el SHA1 de esa estructura saldrá:
     $ xxd -r -p /tmp/hash_nonce | sha1sum 
     f01253ff497eae7fa1555c34a822c2498835c58b  -
 
-Exactamente *el mismo* hash que habíamos obtenido en la sección anterior.
+Exactamente **el mismo** hash que habíamos obtenido en la sección anterior.
 
 
 ### Verificar la firma
@@ -769,7 +842,7 @@ Vaya. Ya lo sabía yo.
 
 Al depurar, el error salta en la función `Tspi_DecodeBER_TssBlob` que a su vez se apoya en las funciones ASN.1 de OpenSSL. ¿Os acordáis al principio cuando dije que "Ese *BAD INTEGER* va a causar problemas". Pues aquí esta, la clave tal como está no carga.
 
-Editamos el fichero `pubkey` para hacerlo **compliant**. Es suficiente con eliminar los dos octetos innecesarios del entero y corregir la longitud del conjunto:
+Editamos el fichero `pubkey` para hacerlo *compliant*. Es suficiente con eliminar los dos octetos innecesarios del entero y corregir la longitud del conjunto:
 
     $ openssl asn1parse -in pubkey_compliant -inform der
         0:d=0  hl=4 l= 298 cons: SEQUENCE          
@@ -797,32 +870,60 @@ Ya podríamos haber descargado la AIK. Puesto que para la verificación no es ne
 
     $ tpm_unloadkey uuid
 
-Con esto concluye la sección sobre **attestation**.
+Con esto concluye la sección sobre *attestation*.
 
 
 
 
-## Bibliografía
+Bibliografía
+------------
+
+### Especificaciones oficiales
+
+TPM 1.2 Main Specification
+https://trustedcomputinggroup.org/resource/tpm-main-specification/
+
+TCG Software Stack (TSS) Specification
+https://trustedcomputinggroup.org/resource/tcg-software-stack-tss-specification/
+
+PKCS #1: RSA Cryptography Specifications Version 2.2
+https://tools.ietf.org/html/rfc8017
+
+
+### Manuales y guías
 
 Emulation of TPM on Raspberry Pi - Marcus Sundberg & Erik Nilsson
 https://www.eit.lth.se/sprapport.php?uid=848
 
-A Hijacker's Guide to the LPC bus
-https://online.tugraz.at/tug_online/voe_main2.getvolltext?pCurrPk=59565
-
 TrouSerS FAQ
 http://trousers.sourceforge.net/faq.html
-
-System Design Manufacturing Recommendations for Atmel TPM Devices - Microchip
-http://ww1.microchip.com/downloads/en/AppNotes/Atmel-8882-TPM-System-Design-Mftg-Recommendations-ApplicationNote.pdf
-
-Linux TPM Encryption: Initializing and Using the TPM
-https://resources.infosecinstitute.com/linux-tpm-encryption-initializing-and-using-the-tpm/
 
 A Practical Guide to TPM 2.0
 https://link.springer.com/book/10.1007/978-1-4302-6584-9
 
+Linux TPM Encryption: Initializing and Using the TPM
+https://resources.infosecinstitute.com/linux-tpm-encryption-initializing-and-using-the-tpm/
+
+Universally unique identifier - Wikipedia
+https://en.wikipedia.org/wiki/Universally_unique_identifier
+
+### Ataques
+
+A Hijacker's Guide to the LPC bus
+https://online.tugraz.at/tug_online/voe_main2.getvolltext?pCurrPk=59565
+
+A Bad Dream: Subverting Trusted Platform Module While You Are Sleeping
+https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-han.pdf
+
+A Security Assessment of Trusted Platform Modules
+https://www.cs.dartmouth.edu/~trdata/reports/TR2007-597.pdf
+
+
+### Experimentación
+
 tpm2-software/tpm2-tss
 https://github.com/tpm2-software/tpm2-tss
+
+
 
 
