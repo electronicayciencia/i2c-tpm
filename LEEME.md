@@ -21,7 +21,7 @@ Exploramos con detalle las posibilidades más habituales como listar PCRs, cifra
   * [Extender PCR](#extender-pcr)
 - [Guardar secretos](#guardar-secretos)
   * [Descifrar el secreto](#descifrar-el-secreto)
-- [Atestación o certificación (attestation)](#atestación-o-certificación-attestation-)
+- [Atestación o certificación (attestation)](#atestación-o-certificación-attestation)
   * [Crear identidad](#crear-identidad)
   * [Crear un UUID](#crear-un-uuid)
   * [Cargar la clave AIK](#cargar-la-clave-aik)
