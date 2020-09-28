@@ -79,7 +79,7 @@ Primeros pasos
 
 Se trata de arrancar los servicios y inicializar el chip. Normalmente el fabricante o el proveedor nos dará el TPM listo para usar o emplearemos comandos de la BIOS.
 
-Pero aquí el TPM el software, ni el fabricante nos lo ha dado activado ni tampoco tenemos BIOS.
+Pero aquí el TPM es software, ni el fabricante nos lo ha dado activado ni tampoco tenemos BIOS.
 
 ### Inicialización del TPM en el arranque
 
@@ -93,7 +93,7 @@ Ahora que ya tenemos TPM, aunque sea virtual, arrancaríamos el demonio TSCD que
 
 Hay que iniciar el TPM. Hasta entonces cualquier interacción devolverá el código 0x26 `TPM_INVALID_POSTINIT`.
 
-Este paso lo haría la BIOS o UEFI antes de arrancar el sistema. La documentación de IBM dice de usar `tpmbios`. Pero no lo tengo, porque no he podido compilar las utilidades. Debo inicializarlo a mano escribiendo los comando de inicialización directamente al "hardware". Por suerte son cortos:
+Este paso lo haría la BIOS o UEFI antes de arrancar el sistema. La documentación de IBM dice de usar `tpmbios`. Pero no lo tengo, porque no he podido compilar las utilidades. Debo inicializarlo a mano escribiendo los comandos de inicialización directamente al "hardware". Por suerte son cortos:
 
 
 Lanzar comando TPM_Init (97) directamente al hardware:
@@ -380,7 +380,7 @@ Guardar secretos
 
 La característica más distintiva de un TPM es poder guardar un secreto bajo una clave y ligarlo al estado actual del sistema.
 
-Podría ser, por ejemplo, la clave privada de una acceso por SSH. O la clave de cifrado de una partición de disco o pendrive.
+Podría ser, por ejemplo, la clave privada de un acceso por SSH. O la clave de cifrado de una partición de disco o pendrive.
 
 Al ligar estos secretos a un valor particular de las PCRs, en cuanto se modifique el software o los parámetros que reflejan tales PCRS no se podrá utilizar.
 
@@ -702,7 +702,7 @@ El TPM va a crear un hash SHA1 con las PCR seleccionadas. Después compondrá in
 
 Pero ¿qué contiene realmente `quote`?
 
-Se supone que es una firma, así que vamos desencriptarlo con la clave pública AIK que teníamos en `pubkey`.
+Se supone que es una firma, así que vamos a desencriptarlo con la clave pública AIK que teníamos en `pubkey`.
 
 Para que openssl pueda utilizarla debemos tener la clave en formato DER X.509. 
 
