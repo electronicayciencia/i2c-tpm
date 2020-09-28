@@ -63,29 +63,6 @@ Reading of the burstCount may be critical when read in single bytes because the 
 Lo datos se escriben a TPM_DATA_FIFO en rafagas de Burstcount escrituras.
 
 
-Los valores de tags y ordinales de comando se definen en el documento de estructuras.
-
-(https://github.com/torvalds/linux/blob/master/include/linux/tpm_command.h)
-/* Command TAGS */
-#define TPM_TAG_RQU_COMMAND             193
-#define TPM_TAG_RQU_AUTH1_COMMAND       194
-#define TPM_TAG_RQU_AUTH2_COMMAND       195
-#define TPM_TAG_RSP_COMMAND             196
-#define TPM_TAG_RSP_AUTH1_COMMAND       197
-#define TPM_TAG_RSP_AUTH2_COMMAND       198
-
-/* Command Ordinals */
-#define TPM_ORD_GETRANDOM               70
-#define TPM_ORD_OSAP                    11
-#define TPM_ORD_OIAP                    10
-#define TPM_ORD_SEAL                    23
-#define TPM_ORD_UNSEAL                  24
-
-
-
-https://github.com/srajiv/trousers/
-
-https://github.com/PeterHuewe/tpm-emulator
 
 
 
@@ -93,16 +70,12 @@ https://github.com/PeterHuewe/tpm-emulator
 
 
 
-Usamos trousers:
- - dos paquetes: TSS y tpm-tools
- también están en la paquetería del sistema
 
 sudo apt-get install tpm-quote-tools tpm-tools-pkcs11
 
 Repos para mirar:
 
 https://github.com/Rohde-Schwarz/TPMManager
-https://github.com/sweis/aiktools
 
 
 
@@ -138,61 +111,9 @@ error
 
 
 
------------------------
-
-tpm-quote-tools: https://github.com/edgeos/tpm-quote-tools/blob/develop/README
-
- 
-tpm_mkaik -z blob pubkey
-
-Definido en *3.23 Portable Data* de la especificación TSS 1.2:
-
-    openssl asn1parse -in pubkey -inform der
-     l= 300  SEQUENCE           -> campo compuesto, 300 bytes
-     l=   1  INTEGER           :01  -> versión = 1
-     l=   1  INTEGER           :02  -> tipo de blob = 2 (PubKey-Blob)
-     l=   4  INTEGER           :BAD INTEGER:[0000011C] -> longitud del blob = 284 bytes
-     l= 284  OCTET STRING      [HEX DUMP]:00000...3199] -> blob tal cual sale del TPM
 
 
 
-
-
-
-
-
-$ tpm_mkuuid uuid
-
-$ hd uuid 
-00000000  1d db 61 aa c4 1b d2 4d  83 01 31 7a e8 e6 c2 bf  |..a....M..1z....|
-00000010
-
-
-
-tpm_loadkey blob uuid
-
-$ ./list_keys 
-Registered key 0:
-Version: 1.1.0.0
-UUID: aa61db1d 1bc4 4dd2 83 01 317ae8e6c2bf
-parent UUID : 00000000 0000 0000 00 00 000000000001
-auth: NO
-vendor data : "trousers 0.3.14" (16 bytes)
-
-Registered key 1:
-Version: 1.1.0.0
-UUID: 00000000 0000 0000 00 00 000000000001
-parent UUID : 00000000 0000 0000 00 00 000000000000
-auth: YES
-vendor data: (0 bytes)
-
-
-tpm_getpcrhash uuid hash pcrvals 0 1 2
-
-# El nonce son 20 bytes podría ser un sha1
-echo -n '01234567890123456789' > nonce
-
-tpm_getquote uuid nonce quote 0 1 2
 
 
 --------------------
@@ -218,8 +139,6 @@ during the library configuration.
 apt-get source gnutls-bin
 ./configure --with-included-unistring --with-tpm
 
-
-toc
 
 
 

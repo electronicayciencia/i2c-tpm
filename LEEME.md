@@ -1,25 +1,28 @@
 Prácticas con TPM virtual
 =========================
 
-Este manual describe la instalación de un TPM software conforme a la especificación TGC 1.2. Así como el software para practical con él en Linux.
+Un TPM es, básicamente, un chip criptográfico con ciertos registros y políticas ligadas a su estado interno.
 
-Exploramos con detalle las posibilidades más habituales como listar PCRs, cifrar y descifrar secretos y atestación.
+El arranque, la BIOS, o el Sistema Operativo modifican los registros internos (PCR). Estos no se guardan directamente sino se calculan usando un hash. Una vez guardado un valor, el siguiente se calcula en base al que tenía, no se pueden reiniciar hasta el siguiente arranque. 
+
+Este manual describe la instalación en Linux de un TPM software conforme a la especificación TGC 1.2 (ya obsoleta). Así como el software para practicar con él y algunas pruebas. Exploramos con detalle las posibilidades más habituales como listar PCRs, cifrar y descifrar secretos y atestación.
 
 
 - [Instalación](#instalación)
   * [Software TPM 1.2](#software-tpm-12)
   * [Api TSS](#api-tss)
-- [Primer arranque](#primer-arranque)
+- [Primeros pasos](#primeros-pasos)
   * [Inicialización del TPM en el arranque](#inicialización-del-tpm-en-el-arranque)
   * [Inicialización del demonio TSCD](#inicialización-del-demonio-tscd)
   * [Habilitar TPM](#habilitar-tpm)
   * [Activar el TPM](#activar-el-tpm)
   * [Crear Endorsement Key](#crear-endorsement-key)
   * [Tomar posesión](#tomar-posesión)
-- [PCRs](#pcrs)
-  * [Generar un número random](#generar-un-número-random)
+- [Comandos simples](#comandos-simples)
   * [Extender PCR](#extender-pcr)
+  * [Generar un número random](#generar-un-número-random)
 - [Guardar secretos](#guardar-secretos)
+  * [Cifrar un secreto](#cifrar-un-secreto)
   * [Descifrar el secreto](#descifrar-el-secreto)
 - [Atestación o certificación (attestation)](#atestación-o-certificación-attestation)
   * [Crear identidad](#crear-identidad)
@@ -42,7 +45,7 @@ Instalación
 
 ### Software TPM 1.2 
 
-Es un emulador para practicar. Es conforme a la especificación TPM 1.2, no 2.0.
+Es un emulador para practicar. Es conforme a la especificación TPM 1.2, no 2.0. Aunque hay múltiples diferencias, el uso general es muy parecido.
 
 https://sourceforge.net/projects/ibmswtpm/
 
@@ -67,8 +70,8 @@ La capa de software se llama TrouSerS. Tiene un demonio tscd que escucha en el p
 Hay que bajar los paquetes trousers y tpm-tools. Están en la paquetería del sistema.
 
 
-Primer arranque
----------------
+Primeros pasos
+--------------
 
 Se trata de arrancar los servicios y inicializar el chip. Normalmente el fabricante o el proveedor nos dará el TPM listo para usar o emplearemos comandos de la BIOS.
 
@@ -301,26 +304,20 @@ Ejecutando el comando `list_keys` se muestra la SRK, con UUID 1, cuyo padre es l
 La clave SRK tampoco sale del dispositivo y para usarla es necesario haberse autenticado con la debida contraseña.
 
 
-PCRs
-----
+Comandos simples
+----------------
 
-
-### Generar un número random
-
-TPM_ORD_GetRandom 0x00000046
-
-    tag:               00 C1         (TPM_TAG_RQU_COMMAND)
-    paramSize:         00 00 00 0E
-    ordinal:           00 00 00 46   (TPM_ORD_GetRandom)
-    bytesRequested:    00 00 00 14   (20 bytes)
-
-
-    echo -e '\x00\xC1\x00\x00\x00\x0E\x00\x00\x00\x46\x00\x00\x00\x14' | netcat localhost 6543 | hd
-
+Una vez activado podemos ejecutar un par de comandos de prueba que funcionan si autenticación.
 
 ### Extender PCR
 
-Ejecutar el programa [extend_pcr](pruebas/extend_pcr.c) indicando el número de PCR. Este programa extiende la PCR con un digest de 20 bytes a cero y devuelve el nuevo valor.
+Las PCRs son registros del TPM que guardan hash SHA1. Al TPM le pasamos unos datos y un número de PCR. El calcula el SHA1 del valor anterior de la PCR y de los nuevos datos y lo guarda sobrescribiendo el anterior.
+
+No le podemos decir que guarde un valor concreto. Ni que olvide el valor antiguo (salvo en un par de ellas). Por eso se habla de *extender* una PCR.
+
+Este programa extiende la PCR con un digest de 20 bytes a cero y devuelve el nuevo valor. Es algo que haría el sistema durante el arranque, o el software.
+
+Ejecutar el programa [extend_pcr](pruebas/extend_pcr.c) indicando el número de la PCR. 
 
 
     $ ./extend_pcr 0
@@ -331,22 +328,50 @@ El valor que toma *b80de5d138758541c5f05265ad144ab9fa86d1db* corresponde al SHA1
     $ perl -e 'print "\x00"x40' | sha1sum
     b80de5d138758541c5f05265ad144ab9fa86d1db  -
 
-Como estamos operando con la *locality* 0, sólo podemos modificar las PCRs de la 0 a la 16 y la 23:
+Como estamos operando con la *locality* 0, sólo podemos modificar las PCRs de la 0 a la 16 y la 23. Si intentams operar con otra no nos deja:
 
     $ ./extend_pcr 17
     Tspi_TPM_PcrExtend: Locality is incorrect for attempted operation
 
 
 
+### Generar un número random
+
+Este es un comando de bajo nivel que no hace uso de las APIs de TSS y puede servir para ver si nos responde. Con el comando 46 (TPM_ORD_GetRandom), le pediremos que nos devuelva varios bytes utilizando el generador aleatorio:
+
+TPM_ORD_GetRandom 0x00000046
+
+    tag:               00 C1         (TPM_TAG_RQU_COMMAND)
+    paramSize:         00 00 00 0E
+    ordinal:           00 00 00 46   (TPM_ORD_GetRandom)
+    bytesRequested:    00 00 00 14   (20 bytes)
+
+
+    $ echo -e '\x00\xC1\x00\x00\x00\x0E\x00\x00\x00\x46\x00\x00\x00\x14' | netcat localhost 6543 | hd
+    00000000  00 c4 00 00 00 22 00 00  00 00 00 00 00 14 24 0d  |....."........$.|
+    00000010  b7 56 3a 76 32 9e 3a 5a  96 f1 d0 38 1b 9f ff 69  |.V:v2.:Z...8...i|
+    00000020  bc 08                                             |..|
+    00000022
+
+La respuesta decodificada es:
+
+    00 c4          TPM_TAG_RSP_COMMAND  A response from a command with no authentication
+    00 00 00 22    paramSize            Total number of output bytes including paramSize and ta
+    00 00 00 00    returnCode           The return code of the operation. (0: ok)
+    00 00 00 14    randomBytesSize      The number of bytes returned (20)
+    24 0d b7 56 3a 76 32 9e 3a 5a 96 f1 d0 38 1b 9f ff 69 bc 08 <- random bytes                        
 
 
 Guardar secretos
 ----------------
 
-La característica más distintiva de un TPM es poder guardar un secreto bajo una clave y ligado al estado actual del sistema.
+La característica más distintiva de un TPM es poder guardar un secreto bajo una clave y ligarlo al estado actual del sistema.
 
-Podría ser, por ejemplo, la clave privada de una ssesión SSH. O la clave de cifrado de una partición de disco o pendrive.
+Podría ser, por ejemplo, la clave privada de una acceso por SSH. O la clave de cifrado de una partición de disco o pendrive.
 
+Al ligar estos secretos a un valor particular de las PCRs, en cuanto se modifique el software o los parámetros que reflejan tales PCRS no se podrá utilizar.
+
+### Cifrar un secreto
 
 Supongamos que este es nuestro texto claro:
 
@@ -374,7 +399,7 @@ Con el comando `tpm_sealdata` guardaremos la clave anterior condicionada a las P
 
 La z significa que la contraseña que hemos usado durante la *toma de posesión* ha sido todo ceros. En un sistema real tendríamos que proporcionar la contraseña de owner para desbloquear la SRK.
 
-Este es el fichero encriptado:
+Este es el fichero con el secreto encriptado. Cifrado mediante AES-256 con una clave simétrica; y esta a su vez cifrada por la SRK vinculada a un hash concreto de unas PCRs concretas.
 
     $ cat data/ciphertext.tss 
     -----BEGIN TSS-----
@@ -412,7 +437,7 @@ Este es el fichero encriptado:
 
 Para desencriptarlo usamos el comando `tpm_unsealdata`. Pero el desencriptado sólo funcionará si las PCRs 0, 1 y 2 tienen el mismo valor que cuando se cifró. 
 
-De mquera que si extendemos artificalmente por ejemplo la PCR 2:
+De manera que si extendemos artificalmente por ejemplo la PCR 2:
 
     $ ./extend_pcr 2
     PCR02: b80de5d138758541c5f05265ad144ab9fa86d1db
@@ -425,7 +450,7 @@ De mquera que si extendemos artificalmente por ejemplo la PCR 2:
     PCR03: 0000000000000000000000000000000000000000
     PCR04: 0000000000000000000000000000000000000000
 
-No va a funcionar. No tendremos acceso a la partición cifrada o no podremos entrar a las máquinas por SSH.
+No va a funcionar. Porque cuando lo cifrados esa PCRs era 0 y ahora no. No tendremos acceso a la partición cifrada o no podremos entrar a las máquinas por SSH.
 
     $ tpm_unsealdata -i data/ciphertext.tss -z
     $ 
@@ -560,7 +585,7 @@ Se supone que `pubkey` usa el formato BER. Sin embargo la especificación TSS de
          10:d=1  hl=2 l=   4 prim: INTEGER           :BAD INTEGER:[0000011C]
          16:d=1  hl=4 l= 284 prim: OCTET STRING      [HEX DUMP]:00000001000100020000000C0000...
 
-Ese *BAD INTEGER* va a causar problemas. Según TSS ese campo tiene una longitud fija de 4 bytes, mientras que ASN.1 dice que los enteros deben guardarse usando el mínimo número de bytes necesarios. En este caso 2 (`01 1C`). Tal vez versiones anteriores fueran más tolerantes, pero la librería OpenSSL 1.1.1 no se lo traga. 
+Ese *BAD INTEGER* va a causar problemas. Según TSS ese campo tiene una longitud fija de 4 bytes (*3.23 Portable Data* de la especificación TSS 1.2), mientras que ASN.1 dice que los enteros deben guardarse usando el mínimo número de bytes necesarios. En este caso 2 bytes son suficientes para guardar el valor `01 1C`, no cuatro. Tal vez versiones anteriores fueran más tolerantes, pero la librería OpenSSL 1.1.1 no se lo traga. 
 
 De hecho, cuando lo vayamos a usar luego con `tpm_verifyquote` nos dará un error interno. Lo arreglaremos más adelante.
 
@@ -586,7 +611,7 @@ Las claves no se guardan en el TPM, salvo SRK y EK sino que se exportan -cifrada
 
 Cuando hace falta usar alguna, se cargan temporalmente en el TPM la clave necesaria así como sus ancestros hasta completar la cadena de confianza. Al cargar cada clave le asignamos un UUID para poder referirnos a ella.
 
-Los identificadores no van ligados a la clave hasta el momento de la carga.
+En TPM v1.2, los identificadores no van ligados a la clave hasta el momento de la carga.
 
 Cargamos en el TPM la clave privada guardada en `blob` asignándole el identificador en `uuid`.
 
@@ -921,9 +946,15 @@ https://www.cs.dartmouth.edu/~trdata/reports/TR2007-597.pdf
 
 ### Experimentación
 
+GitHub Trousers
+https://github.com/srajiv/trousers/
+
 tpm2-software/tpm2-tss
 https://github.com/tpm2-software/tpm2-tss
 
+tpm-quote-tools
+https://github.com/edgeos/tpm-quote-tools/blob/develop/README
 
-
+TPM-Emulator v0.7 - A Software-based TPM and MTM Emulator.
+https://github.com/PeterHuewe/tpm-emulator
 
