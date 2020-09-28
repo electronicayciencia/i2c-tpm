@@ -156,21 +156,31 @@ Pedir la versión:
 
 ### Habilitar TPM
 
-Al hacer cualquier operación devuelve error TPM_Disabled (0x07).
+Los siguientes pasos normalmente no tendremos que hacerlos, porque el fabricante ya nos proporcionará el TPM activo y con su clave EK pre-grabada listo para operar.
 
-Lo habilitamos por medio de **presencia física**. Usamos presencia por software. Para lo cual hay que habilitar el comando:
+En nuestro caso, al hacer cualquier operación devuelve error TPM_Disabled (0x07). Debemos activarlo. Hay una opción en el arranque del emulador de IBM para dejarlo ya activado. Pero no la he usado para hacer este procedimiento a mano.
+
+Algunos comandos no tienen autorización. No pueden: todavía no hemos generado ninguna clave ni puesto contraseña alguna, no hemos tomado posesión. En su lugar requieren que el operador esté presente. Se supone que son comandos que no los podría ejecutar un software. Por eso se llama **presencia física**.
+
+Hay dos formas de asegurar la presencia física del operador:
+ - Poniendo un nivel lógico en una patilla del chip al momento de requerir la autorización. Esto lo haría el procesador por ejemplo mientras nos muestra la pantalla de la BIOS UEFI con el menú correspondiente.
+ - Mandando un comando, *presencia por software*. 
+
+Espera. ¿No habíamos quedado en que no se podía por software? 
+
+Y no se puede, de hecho primero hay que habilitar el comando:
 
     $ tpm_setpresence --enable-cmd
     Tspi_TPM_SetStatus failed: 0x00002006 - layer=tcs, code=0006 (6), Not implemented
     Change to Command Enable Failed
 
-Pero tscd lo deniega mientras el sistema esté arrancado: 
+Pero el driver tscd lo **deniega** mientras el sistema esté arrancado:
 
     Physical Presence command denied: Must be in single user mode.
 
-Como el TPM es virtual, no podemos asegurar presencia por hardware. Habilitamos el comando directamente mandándolo al TPM sin pasar por el TSC.
+Como el TPM es virtual, no podemos asegurar presencia por hardware. Tampoco tengo ganar de irme a modo single-user. Hago bypass al driver TSCD y habilitamos el comando directamente mandándolo al TPM sin pasar por el TSC. Cosa que no podríamos hacer en un sistema real. Al menos no *normalmente*.
 
-Comando 0x4000000A (TSC_ORD_PhysicalPresence). Parámetro 0x0020h (TPM_PHYSICAL_PRESENCE_CMD_ENABLE).
+Envío el Comando 0x4000000A (TSC_ORD_PhysicalPresence). Con el parámetro a 0x0020h (TPM_PHYSICAL_PRESENCE_CMD_ENABLE).
 
     tag:               00 C1         (TPM_TAG_RQU_COMMAND)
     paramSize:         00 00 00 0C
@@ -180,8 +190,7 @@ Comando 0x4000000A (TSC_ORD_PhysicalPresence). Parámetro 0x0020h (TPM_PHYSICAL_
 
     echo -e '\x00\xC1\x00\x00\x00\x0C\x40\x00\x00\x0A\x00\x20' | netcat localhost 6543 | hd
 
-
-De nuevo pero cambiando el parámetro a TPM_PHYSICAL_PRESENCE_PRESENT.
+Me devuelve 00, lo acepta. De nuevo mando el comando TSC_ORD_PhysicalPresence pero esta vez cambiando el parámetro a TPM_PHYSICAL_PRESENCE_PRESENT.
 
     tag:               00 C1         (TPM_TAG_RQU_COMMAND)
     paramSize:         00 00 00 0C
@@ -200,7 +209,7 @@ Ahora podemos activarlo desde el TSC usando Presencia Física como autorización
 
     $ tpm_setenable --force --enable --well-known
 
-En los logs está habilitado, pero desactivado:
+En los logs ya está habilitado, eso sí, aún desactivado:
 
     $ tpm_setenable --status --well-known
     Tspi_TPM_GetStatus failed: 0x00000006 - layer=tpm, code=0006 (6), TPM is deactivated
@@ -211,7 +220,7 @@ Ya tenemos a nuestra disposición los comandos marcados como *Avail Deactivated*
 
 ### Activar el TPM
 
-Activar el TPM (requiere presencia física):
+Activar el TPM (requiere también presencia física):
 
     $ tpm_setactive  --active
 
