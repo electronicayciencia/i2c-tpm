@@ -883,7 +883,7 @@ Ahora ya sí, finalmente:
     $ tpm_verifyquote pubkey_compliant hash nonce quote 
     $
 
-No dice nada porque la firma es corecta.
+No dice nada porque la firma es correcta.
 
 Si no lo fuera diría algo como:
 
@@ -905,56 +905,30 @@ Bibliografía
 
 ### Especificaciones oficiales
 
-TPM 1.2 Main Specification
-https://trustedcomputinggroup.org/resource/tpm-main-specification/
-
-TCG Software Stack (TSS) Specification
-https://trustedcomputinggroup.org/resource/tcg-software-stack-tss-specification/
-
-PKCS #1: RSA Cryptography Specifications Version 2.2
-https://tools.ietf.org/html/rfc8017
+ * TPM 1.2 Main Specification (https://trustedcomputinggroup.org/resource/tpm-main-specification/)
+ * TCG Software Stack (TSS) Specification (https://trustedcomputinggroup.org/resource/tcg-software-stack-tss-specification/)
+ * PKCS #1: RSA Cryptography Specifications Version 2.2 (https://tools.ietf.org/html/rfc8017)
 
 
 ### Manuales y guías
 
-Emulation of TPM on Raspberry Pi - Marcus Sundberg & Erik Nilsson
-https://www.eit.lth.se/sprapport.php?uid=848
-
-TrouSerS FAQ
-http://trousers.sourceforge.net/faq.html
-
-A Practical Guide to TPM 2.0
-https://link.springer.com/book/10.1007/978-1-4302-6584-9
-
-Linux TPM Encryption: Initializing and Using the TPM
-https://resources.infosecinstitute.com/linux-tpm-encryption-initializing-and-using-the-tpm/
-
-Universally unique identifier - Wikipedia
-https://en.wikipedia.org/wiki/Universally_unique_identifier
+ * Emulation of TPM on Raspberry Pi - Marcus Sundberg & Erik Nilsson (https://www.eit.lth.se/sprapport.php?uid=848)
+ * TrouSerS FAQ (http://trousers.sourceforge.net/faq.html)
+ * A Practical Guide to TPM 2.0 (https://link.springer.com/book/10.1007/978-1-4302-6584-9)
+ * Linux TPM Encryption: Initializing and Using the TPM (https://resources.infosecinstitute.com/linux-tpm-encryption-initializing-and-using-the-tpm/)
+ * Universally unique identifier - Wikipedia (https://en.wikipedia.org/wiki/Universally_unique_identifier)
 
 ### Ataques
 
-A Hijacker's Guide to the LPC bus
-https://online.tugraz.at/tug_online/voe_main2.getvolltext?pCurrPk=59565
-
-A Bad Dream: Subverting Trusted Platform Module While You Are Sleeping
-https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-han.pdf
-
-A Security Assessment of Trusted Platform Modules
-https://www.cs.dartmouth.edu/~trdata/reports/TR2007-597.pdf
+ * A Hijacker's Guide to the LPC bus (https://online.tugraz.at/tug_online/voe_main2.getvolltext?pCurrPk=59565)
+ * A Bad Dream: Subverting Trusted Platform Module While You Are Sleeping (https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-han.pdf)
+ * A Security Assessment of Trusted Platform Modules (https://www.cs.dartmouth.edu/~trdata/reports/TR2007-597.pdf)
 
 
 ### Experimentación
 
-GitHub Trousers
-https://github.com/srajiv/trousers/
-
-tpm2-software/tpm2-tss
-https://github.com/tpm2-software/tpm2-tss
-
-tpm-quote-tools
-https://github.com/edgeos/tpm-quote-tools/blob/develop/README
-
-TPM-Emulator v0.7 - A Software-based TPM and MTM Emulator.
-https://github.com/PeterHuewe/tpm-emulator
+ * GitHub Trousers (https://github.com/srajiv/trousers/)
+ * tpm2-software/tpm2-tss (https://github.com/tpm2-software/tpm2-tss)
+ * tpm-quote-tools (https://github.com/edgeos/tpm-quote-tools/blob/develop/README)
+ * TPM-Emulator v0.7 - A Software-based TPM and MTM Emulator. (https://github.com/PeterHuewe/tpm-emulator)
 
