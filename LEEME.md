@@ -182,7 +182,7 @@ Pero el driver tscd lo **deniega** mientras el sistema esté arrancado:
 
     Physical Presence command denied: Must be in single user mode.
 
-Como el TPM es virtual, no podemos asegurar presencia por hardware. Tampoco tengo ganar de irme a modo single-user. Hago bypass al driver TSCD y habilitamos el comando directamente mandándolo al TPM sin pasar por el TSC. Cosa que no podríamos hacer en un sistema real. Al menos no *normalmente*.
+Como el TPM es virtual, no podemos asegurar presencia por hardware. Tampoco tengo ganas de irme a modo single-user. Hago bypass al driver TSCD y habilitamos el comando directamente mandándolo al TPM sin pasar por el TSC. Cosa que no podríamos hacer en un sistema real. Al menos no *normalmente*.
 
 Envío el Comando 0x4000000A (TSC_ORD_PhysicalPresence). Con el parámetro a 0x0020h (TPM_PHYSICAL_PRESENCE_CMD_ENABLE).
 
@@ -525,7 +525,7 @@ El TPM tampoco dejará que firmemos cualquier cosa con una clave AIK, sólo cosa
 
 El comando `tpm_mkaik` creará una nueva clave RSA. Se necesita autorización porque el TPM va a emplear la SRK para cifrar la parte privada.
 
-   $ tpm_mkaik -z blob pubkey
+    $ tpm_mkaik -z blob pubkey
 
 Tras unos comandos al TPM, nos da una respuesta como esta:
 
@@ -782,11 +782,11 @@ Luego si el bloque descifrado no empieza por `00 01 FF`, mal.
 
 Por otro lado, en una firma nunca va sólo el hash. Sino una estructura ASN.1 donde indica el tipo: 
 
->    2.  Encode the algorithm ID for the hash function and the hash
->        value into an ASN.1 value of type DigestInfo 
->        ...
->        The first field identifies the hash function and the second
->        contains the hash value. 
+>    Encode the algorithm ID for the hash function and the hash
+>    value into an ASN.1 value of type DigestInfo 
+>    ...
+>    The first field identifies the hash function and the second
+>    contains the hash value. 
 
 Añadimos la opción `-asn1prse` para que nos la decodifique:
 
