@@ -55,7 +55,7 @@ Tiene tres directorios:
  - /tpm         
  - /tpm_proxy   
 
-El que nos interesa es `tpm`. Libtpm no he conseguido compilarlo con la libería OpenSSL 1.1. En el foro de soporte te dicen que uses trousers: 
+El que nos interesa es `tpm`. Libtpm no he conseguido compilarlo con la librería OpenSSL 1.1. En el foro de soporte te dicen que uses trousers: 
 [hilo en el foro de sourceforge](https://sourceforge.net/p/ibmswtpm/discussion/1137021/thread/9c05f6703c/?limit=250).
 
 Leemos el README del directorio TPM para compilarlo.
@@ -65,9 +65,13 @@ Una vez levantado escucha en un puerto TCP.
 
 ### Api TSS
 
-La capa de software se llama TrouSerS. Tiene un demonio tscd que escucha en el puerto 30003 y se comunica con el TPM software.
+La capa de software se llama TrouSerS. Tiene un demonio tscd que escucha en el puerto 30003. Esta capa gestiona el uso del TPM por parte de las diferentes aplicaciones que pueden usarla desde el espacio de usuario. Se comunica con el TPM software. Puede hacerlo directamente abriendo el dispositivo de caracteres /dev/tmp o bien enviando los comandos a un puerto TCP.
 
 Hay que bajar los paquetes trousers y tpm-tools. Están en la paquetería del sistema.
+
+El flujo sería el siguiente:
+
+    Aplicaciones -> API TSPI -> demonio TSCD (:30003) -> API TDDL -> (localhost:6543) -> TPM Software
 
 
 Primeros pasos
@@ -156,9 +160,9 @@ Pedir la versión:
 
 ### Habilitar TPM
 
-Los siguientes pasos normalmente no tendremos que hacerlos, porque el fabricante ya nos proporcionará el TPM activo y con su clave EK pre-grabada listo para operar.
+Los siguientes pasos normalmente no tendremos que darlos, porque el fabricante ya nos proporcionará el TPM activo y con su clave EK pre-grabada, incluso con un certificado firmado en la nemoria no volátil. Listo para operar.
 
-En nuestro caso, al hacer cualquier operación devuelve error TPM_Disabled (0x07). Debemos activarlo. Hay una opción en el arranque del emulador de IBM para dejarlo ya activado. Pero no la he usado para hacer este procedimiento a mano.
+En nuestro caso, al hacer cualquier operación devuelve error **TPM_Disabled** (0x07). Debemos activarlo. Hay una opción en el arranque del emulador de IBM para dejarlo ya activado. Pero no la he usado para hacer este procedimiento a mano.
 
 Algunos comandos no tienen autorización. No pueden: todavía no hemos generado ninguna clave ni puesto contraseña alguna, no hemos tomado posesión. En su lugar requieren que el operador esté presente. Se supone que son comandos que no los podría ejecutar un software. Por eso se llama **presencia física**.
 
@@ -259,7 +263,7 @@ Podríamos listar las PCRs con el comando `./list_pcrs` ([list_pcrs.c](pruebas/l
     PCR22: ffffffffffffffffffffffffffffffffffffffff
     PCR23: 0000000000000000000000000000000000000000
 
-Las PCRs tienen 20 bytes, la misma longitud que un SHA-1. Además, como es un hash de tipo *Merkle–Damgård* se puede extender por bloques.
+Las PCRs tienen 20 bytes, la misma longitud que un SHA-1.
 
 
 ### Crear Endorsement Key
@@ -459,7 +463,7 @@ De manera que si extendemos artificalmente por ejemplo la PCR 2:
     PCR03: 0000000000000000000000000000000000000000
     PCR04: 0000000000000000000000000000000000000000
 
-No va a funcionar. Porque cuando lo cifrados esa PCRs era 0 y ahora no. No tendremos acceso a la partición cifrada o no podremos entrar a las máquinas por SSH.
+No va a funcionar. Porque cuando lo ciframos esa PCRs era 0 y ahora no. No tendremos acceso a la partición cifrada o no podremos entrar a las máquinas por SSH.
 
     $ tpm_unsealdata -i data/ciphertext.tss -z
     $ 
@@ -778,11 +782,11 @@ Luego si el bloque descifrado no empieza por `00 01 FF`, mal.
 
 Por otro lado, en una firma nunca va sólo el hash. Sino una estructura ASN.1 donde indica el tipo: 
 
-> 2.  Encode the algorithm ID for the hash function and the hash
->     value into an ASN.1 value of type DigestInfo 
->     ...
->     The first field identifies the hash function and the second
->     contains the hash value. 
+>    2.  Encode the algorithm ID for the hash function and the hash
+>        value into an ASN.1 value of type DigestInfo 
+>        ...
+>        The first field identifies the hash function and the second
+>        contains the hash value. 
 
 Añadimos la opción `-asn1prse` para que nos la decodifique:
 
@@ -837,7 +841,7 @@ Que en realidad no es un hash, sino una estructura de tipo `TPM_QUOTE_INFO2` (se
           c1e5494535788f5edde12ee175f30e0f8fea9954 digestAtRelease
     
 
-Esa es la estructura que ha firmado interiormente el TPM. Sólo que el TPM ha usado con nuestro `nonce` como external data mientras que `tpm_getpcrhash` usa uno cualquiera. Al final lo que interesa es el hash del final, llamado **digestAtRelease**.
+Esa es la estructura que ha firmado interiormente el TPM. Sólo que el TPM ha usado con nuestro `nonce` como *external data* mientras que `tpm_getpcrhash` usa uno cualquiera. Al final lo que interesa es el hash del final, llamado **digestAtRelease**.
 
 Como curiosidad, podríamos el fichero `hash` y remplazar en la estructura el nonce por el que tenemos nosotros en el fichero `nonce`, tal que así:
 
