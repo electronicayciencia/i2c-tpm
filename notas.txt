@@ -92,8 +92,6 @@ https://github.com/PeterHuewe/tpm-emulator
 
 
 
-La librería de TPM compila bien, pero las utilidades no.
-https://sourceforge.net/p/ibmswtpm/discussion/1137021/thread/9c05f6703c/?limit=250
 
 Usamos trousers:
  - dos paquetes: TSS y tpm-tools
@@ -109,18 +107,17 @@ https://github.com/sweis/aiktools
 
 
 
-¿Cómo se puede hacer que el TPM "firme" que determinada PCR tiene el valor X?
+
 
 Mirar cómo es el TPM reset attack - Described independently by Kauer and Sparks
 
 
+ATMEL's AT97SC3204T I2C TPM
+https://github.com/theopolis/tpm-i2c-atmel
 
 
-A Bad Dream: Subverting Trusted Platform Module While You Are Sleeping
-https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-han.pdf
-
-A Security Assessment of Trusted Platform Modules
-https://www.cs.dartmouth.edu/~trdata/reports/TR2007-597.pdf
+System Design Manufacturing Recommendations for Atmel TPM Devices - Microchip
+http://ww1.microchip.com/downloads/en/AppNotes/Atmel-8882-TPM-System-Design-Mftg-Recommendations-ApplicationNote.pdf
 
 
 
@@ -135,9 +132,6 @@ Enter new password: 12341234
 error
 
 
-
-git clone
-https://github.com/sweis/aiktools <- no tira
 
 
 
@@ -205,16 +199,27 @@ tpm_getquote uuid nonce quote 0 1 2
 
 
 
+sudo apt-get install gnutls-bin
+viene el manual para tpmtool pero no el binario.
+
+tpmtool is missing
+https://bugs.launchpad.net/ubuntu/+source/gnutls28/+bug/1702755
+
+In this section we present the Trusted Platform Module (TPM) support 
+in @acronym{GnuTLS}. Note that this functionality is disabled by default
+because the @code{trousers} libraries GnuTLS depends on
+are under the Common Public License which is not compatible with the GPL 
+license. By disabling this feature by default we ensure that the GnuTLS library can
+be linked by both GPL and non-GPL programs, but you can enable this option
+during the library configuration.
 
 
 
+apt-get source gnutls-bin
+./configure --with-included-unistring --with-tpm
 
 
-
-
-
-
-
+toc
 
 
 
