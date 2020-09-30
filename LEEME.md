@@ -34,6 +34,7 @@ Este manual describe la instalación en Linux de un TPM software conforme a la e
 - [Bibliografía](#bibliografía)
   * [Especificaciones oficiales](#especificaciones-oficiales)
   * [Manuales y guías](#manuales-y-guías)
+  * [Bitlocker](#bitlocker)
   * [Ataques](#ataques)
   * [Experimentación](#experimentación)
 
@@ -930,13 +931,20 @@ Bibliografía
  * A Practical Guide to TPM 2.0 (https://link.springer.com/book/10.1007/978-1-4302-6584-9)
  * Linux TPM Encryption: Initializing and Using the TPM (https://resources.infosecinstitute.com/linux-tpm-encryption-initializing-and-using-the-tpm/)
  * Universally unique identifier - Wikipedia (https://en.wikipedia.org/wiki/Universally_unique_identifier)
+ * TPM Funcionality (
+https://ladyitris.wordpress.com/tpm-functionality/)
+
+### Bitlocker
+
+ * TPM fundamentals (https://docs.microsoft.com/es-es/windows/security/information-protection/tpm/tpm-fundamentals)
+ * BITLOCKER USING TPM (https://ladyitris.wordpress.com/bitlocker-using-tpm/)
 
 ### Ataques
 
  * A Hijacker's Guide to the LPC bus (https://online.tugraz.at/tug_online/voe_main2.getvolltext?pCurrPk=59565)
  * A Bad Dream: Subverting Trusted Platform Module While You Are Sleeping (https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-han.pdf)
  * A Security Assessment of Trusted Platform Modules (https://www.cs.dartmouth.edu/~trdata/reports/TR2007-597.pdf)
-
+ * Subverting BitLocker with One Vulnerability (https://i.blackhat.com/eu-19/Thursday/eu-19-Han-BitLeaker-Subverting-BitLocker-With-One-Vulnerability.pdf)
 
 ### Experimentación
 
