@@ -1,0 +1,25 @@
+# Return 20 random bytes
+s
+w52
+w00 
+wC1  
+w00 
+w00 
+w00 
+w0E
+w00 
+w00 
+w00 
+w46 
+w00 
+w00 
+w00 
+w64 # 100 bytes
+
+t10
+
+s
+w53
+r115 # 14 header + 100 random + 1 extra (0xff)
+p
+q

@@ -1,0 +1,20 @@
+# First sequence that makes the chip answer something.
+s
+w52
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+t10
+s
+w53
+r10
+a
+p
+q

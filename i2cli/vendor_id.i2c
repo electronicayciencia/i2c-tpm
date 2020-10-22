@@ -1,0 +1,36 @@
+# TPM_ORD_GetCapability  0x00000065 
+# 0x00000005  TPM_CAP_PROPERT
+# 0x00000103  TPM_CAP_PROP_MANUFACTURER
+s
+w52
+
+w00 
+wC1
+w00
+w00
+w00
+w16
+w00
+w00
+w00
+w65
+w00
+w00
+w00
+w05
+w00
+w00
+w00
+w04
+w00
+w00
+w01
+w03
+
+
+s
+w53
+r100
+a
+p
+q

@@ -9,4 +9,4 @@ aiktools/*
 *.so
 *.a
 *.bak
-
+.i2cli_history

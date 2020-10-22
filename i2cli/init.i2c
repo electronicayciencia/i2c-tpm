@@ -1,0 +1,23 @@
+# TPM_Init
+s
+w52
+
+w00
+wC1
+w00
+w00
+w00
+w0A
+w00
+w00
+w00
+w97
+
+t10
+
+s
+w53
+r10
+a
+p
+q
