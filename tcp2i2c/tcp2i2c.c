@@ -14,11 +14,11 @@ int deal_with_client(int socket) {
 		return -1;
 	}
 
-	//i2c_send_frame(i2c, frame)
+	//i2c_send_frame(i2c, &frame)
 	//free(frame.data);
 	
 	// reuse frame struct
-	//i2c_get_response(i2c, frame)
+	//i2c_get_response(i2c, &frame)
 
 	tcp_write_frame(socket, &frame);
 	free(frame.data);
