@@ -111,7 +111,7 @@ https://chromium.googlesource.com/chromiumos/third_party/kernel-next/+/chromeos-
 
 
 
-
+https://i.blackhat.com/eu-19/Thursday/eu-19-Han-BitLeaker-Subverting-BitLocker-With-One-Vulnerability.pdf
 
 
 
@@ -138,6 +138,365 @@ during the library configuration.
 
 apt-get source gnutls-bin
 ./configure --with-included-unistring --with-tpm
+
+
+---------------
+
+I2C
+Necesita reset a Vcc para funcionar.
+I2C Addr 29h  (R: 53, W: 52)
+
+Leer el TPM_STS (0x18 +4)
+
+si lees ff da lo mismo: c6 13 8d 51
+leyendo mal
+
+
+s
+w52
+w00
+p
+s
+w53
+r01
+a
+p
+q
+
+
+
+Siempre responde esto:
+c6 13 8d 51 4f fa 21 35 bf ce 0e d0 b8 fa c6 56 69 91 7e c7 c6 13 8d 51 4f fa 21 35 bf ce 0e d0 b8 fa c6 56 69 91 7e c7 28 29 2a 2b 2c 2d 2e 2f 30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f 00 00 00
+
+
+Empiezo a mandarle ceros, uno, dos, tres, cuatro ceros seguidos y siempre responde eso. Hasta que:
+
+
+
+primer comando que hace algo: zeros.i2c
+w52
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+w00
+Responde con:
+00 c4 00 00 00 0a 00 00 00 1e
+
+Que es coherente con:
+
+00 c4 -> TPM_TAG_RSP_COMMAND
+00 00 00 0a -> 10 bytes
+00 00 00 1e -> TPM_BADTAG  (The tag value sent to for a command is invalid)
+
+A veces responde bien y a veces con NACK.
+Si esperas 10ms responde bien.
+Si esperas también responde bien al restart.
+
+
+------
+
+Random:
+
+Bytes aleatorios: random.i2c
+
+w00 
+wC1  
+w00 
+w00 
+w00 
+w0E
+w00 
+w00 
+w00 
+w46 
+w00 
+w00 
+w00 
+w14
+
+Devuelve: 00 c4 00 00 00 0a 00 00 00 26
+0x26 = 38 = TPM_INVALID_POSTINIT
+
+------
+
+Init:
+
+w00
+wC1
+w00
+w00
+w00
+w0A
+w00
+w00
+w00
+w97
+
+Devuelve:
+00 c4 00 00 00 0a 00 00 00 0a
+
+0a = TPM_BAD_ORDINAL
+
+¿no existe? Probemos con startup
+
+------
+
+w00
+wC1
+w00
+w00
+w00
+w0C
+w00
+w00
+w00
+w99
+w00
+w01
+
+Devuelve también TPM_INVALID_POSTINIT.
+
+Probamos con self test.
+
+------
+
+TPM_ORD_ContinueSelfTest  0x00000053
+
+w00
+wC1
+w00
+w00
+w00
+w0a
+w00
+w00
+w00
+w53
+
+Este ya sí devuelve 00:
+00 c4 00 00 00 0a 00 00 00 00 
+
+Tras esto, ya funciona random.
+------
+
+random.i2c:
+r -> 00 c4 00 00 00 22 00 00 00 00 00 00 00 14 c5 b4 01 be dd d3 d4 2a 32 23 57 2b 38 0f b8 75 94 c2 e2 94 ff ff ff ff ff ff
+
+
+------
+
+get vendor id:
+
+TPM_ORD_GetCapability  0x00000065 
+0x00000005  TPM_CAP_PROPERT
+0x00000103  TPM_CAP_PROP_MANUFACTURER 
+
+
+00 C1
+00 00 00 16
+00 00 00 65
+00 00 00 05
+00 00 00 04
+00 00 01 03
+
+Devuelve:  00 c4 00 00 00 12 00 00 00 00 00 00 00 04 41 54 4d 4c
+
+41 54 4d 4c = ATML
+
+
+
+Revisar si el clock stretching sigue funcionando en la librería i2c.
+
+
+
+
+-----------------
+
+
+$ tpm_version
+TPM 1.2 Version Info:
+  Chip Version:        1.2.66.16
+  Spec Level:          2
+  Errata Revision:     3
+  TPM Vendor ID:       ATML
+  TPM Version:         01010000
+  Manufacturer Info:   41544d4c
+
+
+
+reinoso@ubuntu18:~/tpm/pruebas$ tpm_getpubek 
+Public Endorsement Key:
+  Version:   01010000
+  Usage:     0x0002 (Legacy)
+  Flags:     0x00000000 (!VOLATILE, !MIGRATABLE, !REDIRECTION)
+  AuthUsage: 0x00 (Never)
+  Algorithm:         0x00000020 (RSA)
+  Encryption Scheme: 0x00000012 (RSAESOAEP_SHA1_MGF1)
+  Signature Scheme:  0x00000010 (None)
+  Key Size:          2048 bits
+  Public Key:
+	d88f090b c0c45329 1d9c23c1 c52e7ff1 3b4d6aa4 f0442c49 05688608 e12ebaa8
+	02ad89c0 d82dbde8 7bee64e7 ca694671 0a90f33a b6e4593a db87add7 aea953ed
+	b0d7dcd3 787c21fa 2b62bd8d e3356191 9b4ef3bb 29b356dd 3060752b cb8bc640
+	c36c3ec5 9c4ed175 e2e6148e 57e8c54c 03e8b42e 3ff95b3f ca4936a6 bfcc7372
+	f7092e90 0d32183c 3f53aa82 0a9ced81 4fdbf14a 40a7463a c216c0e0 decbfc03
+	aea77244 708fc6b6 0fe6ecab a0240818 5a33b955 975e6467 f19e70ff 9814fd20
+	f9358a3f fa33652f a9b079bd 6b0e817d 7d44125b ac7ee727 d856775a 987d3162
+	b65fd78c cbbb1430 ddc6cbb9 0c3eaf6f fb159bea 1d05a287 c75e5731 1d6bbaff
+
+Levantar bridge tcp a i2c en la raspberry:
+
+    pi@raspberrypi:~$ ./tcp2i2c
+    20:55:52 INFO  tcp2i2c.c:96: TPM TCP to I2C bridge by electronicaYciencia.
+    20:55:52 INFO  tcp2i2c.c:97: Listening on port 8888.
+    
+Lanzar el demonio tscd en la maquina virtual:
+
+    export TCSD_USE_TCP_DEVICE=true
+    export TCSD_TCP_DEVICE_PORT=8888
+    export TCSD_TCP_DEVICE_HOSTNAME=192.168.1.121
+    tcsd -e -f
+
+
+Reset, da 26 invalid_post_init.
+
+Mandamos startup:
+
+    $ echo -ne "\x00\xC1\x00\x00\x00\x0C\x00\x00\x00\x99\x00\x01" | netcat 192.168.1.121 8888 | hd
+    00000000  00 c4 00 00 00 0a 00 00  00 00                    |..........|
+    0000000a
+
+Vemos como el bridge envía en comando y recibe la respuesta. Tarda bastante.
+    19:07:35 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 12 bytes, ordinal: 0x00000099 (TPM_ORD_Startup)
+    19:07:35 WARN  tpm_i2c.c:58: Device not ready (try 1 of 10)
+    19:07:35 WARN  tpm_i2c.c:58: Device not ready (try 2 of 10)
+    19:07:35 WARN  tpm_i2c.c:58: Device not ready (try 3 of 10)
+    19:07:35 WARN  tpm_i2c.c:58: Device not ready (try 4 of 10)
+    19:07:35 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 10 bytes, return code: 0x00000000 (TPM_SUCCESS)
+
+Lanzamos el tscd, lee el estado:
+
+    19:09:26 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 18 bytes, ordinal: 0x00000065 (TPM_ORD_GetCapability)
+    19:09:26 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 29 bytes, return code: 0x00000000 (TPM_SUCCESS)
+    ...
+    19:09:26 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 18 bytes, ordinal: 0x00000065 (TPM_ORD_GetCapability)
+    19:09:26 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 16 bytes, return code: 0x00000000 (TPM_SUCCESS)
+
+
+Versión del TPM, Atmel.
+
+    $ tpm_version 
+    TPM 1.2 Version Info:
+      Chip Version:        1.2.66.16
+      Spec Level:          2
+      Errata Revision:     3
+      TPM Vendor ID:       ATML
+      TPM Version:         01010000
+      Manufacturer Info:   41544d4c
+
+Listar PCR:
+
+    19:18:51 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 14 bytes, ordinal: 0x00000015 (TPM_ORD_PcrRead)
+    19:18:51 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 30 bytes, return code: 0x00000000 (TPM_SUCCESS)
+    ...
+
+
+    $ ./list_pcrs 
+    PCR List
+    PCR00: 0000000000000000000000000000000000000000
+    PCR01: 0000000000000000000000000000000000000000
+    ...
+
+Ver la EK que viene de serie:
+
+    19:21:22 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 30 bytes, ordinal: 0x0000007c (TPM_ORD_ReadPubek)
+    19:21:22 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 314 bytes, return code: 0x00000000 (TPM_SUCCESS)
+
+
+
+    $ tpm_getpubek 
+    Public Endorsement Key:
+      Version:   01010000
+      Usage:     0x0002 (Legacy)
+      Flags:     0x00000000 (!VOLATILE, !MIGRATABLE, !REDIRECTION)
+      AuthUsage: 0x00 (Never)
+      Algorithm:         0x00000020 (RSA)
+      Encryption Scheme: 0x00000012 (RSAESOAEP_SHA1_MGF1)
+      Signature Scheme:  0x00000010 (None)
+      Key Size:          2048 bits
+      Public Key:
+        d88f090b c0c45329 1d9c23c1 c52e7ff1 3b4d6aa4 f0442c49 05688608 e12ebaa8
+        02ad89c0 d82dbde8 7bee64e7 ca694671 0a90f33a b6e4593a db87add7 aea953ed
+        b0d7dcd3 787c21fa 2b62bd8d e3356191 9b4ef3bb 29b356dd 3060752b cb8bc640
+        c36c3ec5 9c4ed175 e2e6148e 57e8c54c 03e8b42e 3ff95b3f ca4936a6 bfcc7372
+        f7092e90 0d32183c 3f53aa82 0a9ced81 4fdbf14a 40a7463a c216c0e0 decbfc03
+        aea77244 708fc6b6 0fe6ecab a0240818 5a33b955 975e6467 f19e70ff 9814fd20
+        f9358a3f fa33652f a9b079bd 6b0e817d 7d44125b ac7ee727 d856775a 987d3162
+        b65fd78c cbbb1430 ddc6cbb9 0c3eaf6f fb159bea 1d05a287 c75e5731 1d6bbaff
+    
+
+
+
+Pasos descritos en *System Design Manufacturing Recommendations for Atmel TPM Devices*, sección "Sample Manufacturing Sequence":
+- Step 1: Physically boot the TPM by performing a normal hardware power-up or reset sequence.
+- Step 2: TPM_Startup(ST_CLEAR)
+ok
+
+- Step 3: TSC_PhysicalPresence
+
+
+
+Pedimos el estado de los flags:
+
+0x00000108  TPM_CAP_FLAG_PERMANENT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
