@@ -5,8 +5,8 @@ LDFLAGS =
 
 ifeq ($(shell uname -m), armv7l)
   src := $(src) soft_i2c.c
-  CFLAGS = -D_BSD_SOURCE -std=c99 $(CFLAGS)
-  LDFLAGS = -lwiringPi $(LDFLAGS)
+  CFLAGS := -D_BSD_SOURCE -std=c99 $(CFLAGS)
+  LDFLAGS := -lwiringPi $(LDFLAGS)
 else
   src := $(src) mock_i2c.c
   CFLAGS := -DI2C_MOCK $(CFLAGS)
