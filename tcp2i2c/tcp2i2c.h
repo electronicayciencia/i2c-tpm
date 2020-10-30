@@ -9,6 +9,8 @@
 #define I2C_ADDRESS 0x29
 #define TCP_PORT 8888
 
+#define I2C_WAIT_TIME_MS 10
+#define I2C_MAX_WAIT_CYCLES 10
 
 #define LEN_HEADER 10
 

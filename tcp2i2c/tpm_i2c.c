@@ -47,10 +47,21 @@ int i2c_get_header(i2c_t i2c, tpm_frame_t* frame) {
  * On failure return -1 (and free the buffer). */
 int i2c_get_frame(i2c_t i2c, tpm_frame_t* frame) {
 	int i;
+	int ready = 0;
 
-	i2c_start(i2c);
-	if (i2c_send_byte(i2c, I2C_ADDRESS << 1 | I2C_READ) != I2C_ACK) {
-		log_warn("Device not ready");
+	for (i = 0; i < I2C_MAX_WAIT_CYCLES; i++) {
+		i2c_start(i2c);
+		if (i2c_send_byte(i2c, I2C_ADDRESS << 1 | I2C_READ) == I2C_ACK) {
+			ready = 1;
+			break;
+		}
+		log_warn("Device not ready (try %d of %d)", i+1, I2C_MAX_WAIT_CYCLES);
+		i2c_stop(i2c);
+		usleep(I2C_WAIT_TIME_MS*1000);
+	}
+
+	if (!ready) {
+		log_error("Device timeout");
 		i2c_stop(i2c);
 		return -1;
 	}
