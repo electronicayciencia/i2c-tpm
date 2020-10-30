@@ -2,7 +2,7 @@ src = $(wildcard *.c)
 obj = $(src:.c=.o)
 hdr = $(src:.c=.h)
 
-CFLAGS = -DLOG_USE_COLOR -g
+CFLAGS = -D_BSD_SOURCE -std=c99 -DLOG_USE_COLOR -g
 LDFLAGS = 
 
 tcp2i2c: $(obj) $(hdr)
