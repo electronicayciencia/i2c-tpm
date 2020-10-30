@@ -1,3 +1,16 @@
+const char * tpmtag_to_text(int tag) {
+	switch (tag) {
+		case 0x00C1: return "TPM_TAG_RQU_COMMAND";
+		case 0x00C2: return "TPM_TAG_RQU_AUTH1_COMMAND";
+		case 0x00C3: return "TPM_TAG_RQU_AUTH2_COMMAND";
+		case 0x00C4: return "TPM_TAG_RSP_COMMAND";
+		case 0x00C5: return "TPM_TAG_RSP_AUTH1_COMMAND";
+		case 0x00C6: return "TPM_TAG_RSP_AUTH2_COMMAND";
+		default: return "Unknown!";
+	}
+}
+
+
 const char * ord_to_text(int ord) {
 	switch (ord) {
 		case 0x0000000A: return "TPM_ORD_OIAP";
@@ -130,7 +143,7 @@ const char * ord_to_text(int ord) {
 }
 
 
-const char * tag_to_text(int tag) {
+const char * structuretag_to_text(int tag) {
 	switch (tag) {
 		case 0x0001: return "TPM_TAG_CONTEXTBLOB";
 		case 0x0002: return "TPM_TAG_CONTEXT_SENSITIVE";
@@ -196,6 +209,7 @@ const char * tag_to_text(int tag) {
 
 const char * returncode_to_text(int code) {
 	switch (code) {
+		case 0: return "TPM_SUCCESS";
 		case 1: return "TPM_AUTHFAIL";
 		case 2: return "TPM_BADINDEX";
 		case 3: return "TPM_BAD_PARAMETER";

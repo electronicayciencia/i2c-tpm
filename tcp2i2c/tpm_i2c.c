@@ -31,9 +31,9 @@ int i2c_get_header(i2c_t i2c, tpm_frame_t* frame) {
 
 	memcpy(frame->wire_header, buffer, LEN_HEADER);
 	
-	log_info(" <-- tag: 0x%02x (%s), size: %d bytes, return code: 0x%08x (%s)",
+	log_info(" <-- tag: 0x%04x (%s), size: %d bytes, return code: 0x%08x (%s)",
 		frame->tag,
-		tag_to_text(frame->tag),
+		tpmtag_to_text(frame->tag),
 		frame->size,
 		frame->code,
 		returncode_to_text(frame->code));

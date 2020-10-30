@@ -45,7 +45,7 @@ int tcp_get_header(int socket, tpm_frame_t* frame) {
 
 	log_info(" --> tag: 0x%04x (%s), size: %d bytes, ordinal: 0x%08x (%s)",
 		frame->tag, 
-		tag_to_text(frame->tag), 
+		tpmtag_to_text(frame->tag), 
 		frame->size, 
 		frame->code, 
 		ord_to_text(frame->code));
