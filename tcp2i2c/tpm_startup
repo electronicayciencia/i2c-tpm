@@ -1,0 +1,2 @@
+#!/bin/bash
+echo -ne "\x00\xC1\x00\x00\x00\x0C\x00\x00\x00\x99\x00\x01" | netcat 192.168.1.121 8888 | hd
