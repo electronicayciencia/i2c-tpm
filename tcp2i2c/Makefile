@@ -1,6 +1,6 @@
-src = log.c tcp2i2c.c tpm_i2c.c tpm_tcp.c
+src = log.c tcp2i2c.c tpm_i2c.c tpm_tcp.c translation.c
 
-CFLAGS = -DLOG_USE_COLOR -g
+CFLAGS = -DLOG_USE_COLOR -g -DLOG_LEVEL=LOG_INFO
 LDFLAGS =
 
 ifeq ($(shell uname -m), armv7l)

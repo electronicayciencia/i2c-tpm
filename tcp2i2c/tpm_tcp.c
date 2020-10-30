@@ -1,4 +1,5 @@
 
+#include "translation.h"
 #include "tpm_tcp.h"
 #include "log.h" // https://github.com/rxi/log.c
 
@@ -42,8 +43,12 @@ int tcp_get_header(int socket, tpm_frame_t* frame) {
 
 	memcpy(frame->wire_header, buffer, LEN_HEADER);
 
-	log_trace("Tag: 0x%02x, Size: %d, Code: 0x%08x",
-		frame->tag, frame->size, frame->code);
+	log_info(" --> tag: 0x%04x (%s), size: %d bytes, ordinal: 0x%08x (%s)",
+		frame->tag, 
+		tag_to_text(frame->tag), 
+		frame->size, 
+		frame->code, 
+		ord_to_text(frame->code));
 
 	return readed;
 }

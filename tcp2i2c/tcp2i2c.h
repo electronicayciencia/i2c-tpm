@@ -9,7 +9,6 @@
 #define I2C_ADDRESS 0x29
 #define TCP_PORT 8888
 
-#define LOG_LEVEL LOG_DEBUG
 
 #define LEN_HEADER 10
 
@@ -21,6 +20,9 @@ typedef struct {
    uint8_t  wire_header[LEN_HEADER]; // header as seen in the wire
 } tpm_frame_t;
 
+#ifndef LOG_LEVEL
+#define LOG_LEVEL LOG_DEBUG
+#endif
 
 #endif /* TCP2I2C_H__ */
 

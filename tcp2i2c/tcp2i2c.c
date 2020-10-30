@@ -39,7 +39,7 @@ int deal_with_request(int socket, i2c_t i2c) {
 	tcp_write_frame(socket, &frame);
 	free(frame.data);
 	
-	log_trace("Ok");
+	log_trace("Done");
 	
 	return 0;
 }
@@ -91,6 +91,8 @@ int main(int argc , char *argv[])
 
 	i2c_t i2c = i2c_init(I2C_SCL, I2C_SDA);
 
+	log_info("TPM TCP to I2C bridge by electronicaYciencia.");
+	log_info("Listening on port %d.", TCP_PORT);
 
 	while(1) {
 		struct sockaddr_in client;
@@ -98,7 +100,7 @@ int main(int argc , char *argv[])
 		int c = sizeof(struct sockaddr_in);
 
 		//Accept and incoming connection
-		log_info("Waiting for incoming connections...");
+		log_debug("Waiting for incoming connections...");
 	
 		//accept connection from an incoming client
 		connected_sock = accept(

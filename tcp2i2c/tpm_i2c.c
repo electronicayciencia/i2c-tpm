@@ -1,4 +1,4 @@
-
+#include "translation.h"
 #include "tpm_i2c.h"
 #include "log.h" // https://github.com/rxi/log.c
 
@@ -31,8 +31,12 @@ int i2c_get_header(i2c_t i2c, tpm_frame_t* frame) {
 
 	memcpy(frame->wire_header, buffer, LEN_HEADER);
 	
-	log_trace("Tag: 0x%02x, Size: %d, Code: 0x%08x",
-		frame->tag, frame->size, frame->code);
+	log_info(" <-- tag: 0x%02x (%s), size: %d bytes, return code: 0x%08x (%s)",
+		frame->tag,
+		tag_to_text(frame->tag),
+		frame->size,
+		frame->code,
+		returncode_to_text(frame->code));
 
 	return LEN_HEADER;
 }
