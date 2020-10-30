@@ -4,8 +4,8 @@
 #include <stdint.h> // uint16_t
 
 #define MAX_SIZE 0x1fff
-#define I2C_SCL 9
-#define I2C_SDA 8
+#define I2C_SCL 24
+#define I2C_SDA 23
 #define I2C_ADDRESS 0x29
 #define TCP_PORT 8888
 
