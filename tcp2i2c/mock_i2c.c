@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "mock_i2c.h"
+#include "soft_i2c.h"
 
 int _mock_i2c_read_pointer = 0;
 char _mock_i2c_read_text[] = "\x81\x82\x00\x00\x00\x0c\x01\x01\x01\x01\xaa\xaa";
