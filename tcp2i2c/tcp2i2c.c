@@ -10,7 +10,9 @@
 #include <stdlib.h> // exit, free
 #include <unistd.h> // close, usleep
 
+#ifndef I2C_MOCK
 #include <wiringPi.h> // wiringPiSetup
+#endif /* I2C_MOCK */
 
 #include "tcp2i2c.h"
 #include "log.h"
@@ -65,10 +67,10 @@ int main(int argc , char *argv[])
     if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
         perror("setsockopt(SO_REUSEADDR) failed");
 
-#ifdef SO_REUSEPORT
+	#ifdef SO_REUSEPORT
     if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0) 
         perror("setsockopt(SO_REUSEPORT) failed");
-#endif
+	#endif
 
 	//Bind
 	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0) {
@@ -80,8 +82,10 @@ int main(int argc , char *argv[])
 	listen(socket_desc , 3);
 	
 	// Prepare I2C communication
+	#ifndef I2C_MOCK
 	if (wiringPiSetup () == -1)
 		return 1;
+	#endif /* I2C_MOCK */
 
 	i2c_t i2c = i2c_init(I2C_SCL, I2C_SDA);
 
