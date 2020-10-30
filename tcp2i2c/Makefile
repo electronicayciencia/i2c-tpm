@@ -3,7 +3,7 @@ obj = $(src:.c=.o)
 hdr = $(src:.c=.h)
 
 CFLAGS = -D_BSD_SOURCE -std=c99 -DLOG_USE_COLOR -g
-LDFLAGS = 
+LDFLAGS = -lwiringPi
 
 tcp2i2c: $(obj) $(hdr)
 	$(CC) -o $@ $^ $(LDFLAGS)

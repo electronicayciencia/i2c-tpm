@@ -10,10 +10,12 @@
 #include <stdlib.h> // exit, free
 #include <unistd.h> // close, usleep
 
+#include <wiringPi.h> // wiringPiSetup
+
 #include "tcp2i2c.h"
 #include "log.h"
 #include "tpm_tcp.h"
-#include "mock_i2c.h"
+#include "soft_i2c.h"
 #include "tpm_i2c.h"
 
 
@@ -78,8 +80,8 @@ int main(int argc , char *argv[])
 	listen(socket_desc , 3);
 	
 	// Prepare I2C communication
-	/*if (wiringPiSetup () == -1)
-		return 1;*/
+	if (wiringPiSetup () == -1)
+		return 1;
 
 	i2c_t i2c = i2c_init(I2C_SCL, I2C_SDA);
 
