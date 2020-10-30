@@ -35,7 +35,9 @@ int deal_with_request(int socket, i2c_t i2c) {
 	usleep(17*1000);
 	
 	// reuse frame struct
-	i2c_get_frame(i2c, &frame);
+	if (i2c_get_frame(i2c, &frame) < 0) {
+		return -1;
+	}
 	tcp_write_frame(socket, &frame);
 	free(frame.data);
 	
