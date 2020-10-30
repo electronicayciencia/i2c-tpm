@@ -9,6 +9,7 @@
 #define I2C_ADDRESS 0x29
 #define TCP_PORT 8888
 
+#define LOG_LEVEL LOG_DEBUG
 
 #define LEN_HEADER 10
 
