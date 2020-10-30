@@ -3,8 +3,9 @@
 	https://www.binarytides.com/server-client-example-c-sockets-linux/
 */
 
-#include "tcp2i2c.h"
+#include "log.h"
 #include "tpm_tcp.h"
+#include "tcp2i2c.h"
 
 int deal_with_client(int socket) {
 	tpm_frame_t frame;
@@ -23,7 +24,6 @@ int deal_with_client(int socket) {
 	tcp_write_frame(socket, &frame);
 	free(frame.data);
 	
-	//write(socket, "Ok\n", 3);
 	log_trace("Ok");
 	
 	return 0;

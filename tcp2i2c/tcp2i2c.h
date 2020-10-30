@@ -1,11 +1,12 @@
+#ifndef H1_H__
+#define H1_H__
+
+#include <stdint.h> // uint16_t
 #include <stdio.h>
-#include <string.h>	// strlen
 #include <sys/socket.h>
 #include <arpa/inet.h>	// inet_addr
-#include <unistd.h>	// write
-#include <stdlib.h> // exit
-#include "log.h" // https://github.com/rxi/log.c
-
+#include <stdlib.h> // exit, free
+#include <unistd.h> // close
 
 #define MAX_SIZE 0x1fff
 #define LEN_HEADER 10
@@ -19,5 +20,5 @@ typedef struct {
 } tpm_frame_t;
 
 
-
+#endif /* h1.h */
 

@@ -1,5 +1,6 @@
-#include "tcp2i2c.h"
+
 #include "tpm_tcp.h"
+#include "log.h" // https://github.com/rxi/log.c
 
 /* Read N bytes from TCP socket.
  * Die on failure */
