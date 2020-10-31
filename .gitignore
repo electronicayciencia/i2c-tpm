@@ -10,3 +10,4 @@ aiktools/*
 *.a
 *.bak
 .i2cli_history
+tmp.txt

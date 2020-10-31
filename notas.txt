@@ -442,7 +442,6 @@ Ver la EK que viene de serie:
     
 
 
-
 Pasos descritos en *System Design Manufacturing Recommendations for Atmel TPM Devices*, sección "Sample Manufacturing Sequence":
 - Step 1: Physically boot the TPM by performing a normal hardware power-up or reset sequence.
 - Step 2: TPM_Startup(ST_CLEAR)
@@ -456,56 +455,137 @@ Pedimos el estado de los flags:
 
 0x00000108  TPM_CAP_FLAG_PERMANENT
 
+$ echo -ne "\x00\xC1\x00\x00\x00\x16\x00\x00\x00\x65\x00\x00\x00\x04\x00\x00\x00\x04\x00\x00\x01\x08" | netcat 192.168.1.121 8888 | hd
+00000000  00 c4 00 00 00 24 00 00  00 00 00 00 00 16 00 1f  |.....$..........|
+00000010  00 01 00 01 00 00 00 00  01 01 00 00 00 00 00 00  |................|
+00000020  00 00 00 00                                       |....|
+00000024
+
+
+  00  disable
+* 01  ownership
+  00  deactivated
+* 01  readPubek
+  00  disableOwnerClear
+  00  allowMaintenance
+  00  physicalPresenceLifetimeLock
+  00  physicalPresenceHWEnable
+* 01  physicalPresenceCMDEnable
+* 01  CEKPUsed
+  00  TPMpost
+  00  TPMpostLock
+  00  FIPS
+  00  operator
+  00  enableRevokeEK
+  00  nvLocked
+  00  readSRKPub
+  00  tpmEstablished
+  00  maintenanceDone
+  00  disableFullDALogicInfo 
+
+
+Hacemos el take ownership:
+
+    $ tpm_takeownership --owner-well-known --srk-well-known
+
+
+Presencia:
+
+reinoso@ubuntu18:~/tpm/pruebas$ tpm_setpresence -s -z
+Physical Presence Status:
+	Command Enable: true
+	Hardware Enable: false
+	Lifetime Lock: false
+	Physical Presence: false
+	Lock: false
+
+Clear:
+
+    $ tpm_clear -z
+    TPM Successfuly Cleared.  You need to reboot to complete this operation.  After reboot the TPM will be in the default state: unowned, disabled and inactive.
+    
+Las capabilityes ahora muestran deactivated:
+
+    $ echo -ne "\x00\xC1\x00\x00\x00\x16\x00\x00\x00\x65\x00\x00\x00\x04\x00\x00\x00\x04\x00\x00\x01\x08" | netcat 192.168.1.121 8888 | hd
+    00000000  00 c4 00 00 00 24 00 00  00 00 00 00 00 16 00 1f  |.....$..........|
+    00000010  01 01 01 01 00 00 00 00  01 01 00 00 00 00 00 00  |................|
+    00000020  00 00 00 00                                       |....|
+    00000024
+    
+El getpubek lo confirma:
+
+
+    $ tpm_getpubek 
+    Tspi_TPM_GetPubEndorsementKey failed: 0x00000006 - layer=tpm, code=0006 (6), TPM is deactivated
+
+    23:49:15 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 30 bytes, ordinal: 0x0000007c (TPM_ORD_ReadPubek)
+    23:49:15 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 10 bytes, return code: 0x00000006 (TPM_DEACTIVATED)
+
+
+Habilitamos presencia:
+
+    tag:               00 C1         (TPM_TAG_RQU_COMMAND)
+    paramSize:         00 00 00 0C
+    ordinal:           40 00 00 0A   (TSC_ORD_PhysicalPresence)
+    physicalPresence:  00 20         (TPM_PHYSICAL_PRESENCE_CMD_ENABLE)
+    
+    
+    $ echo -ne '\x00\xC1\x00\x00\x00\x0C\x40\x00\x00\x0A\x00\x20' | netcat 192.168.1.121 8888 | hd
+
+
+    23:52:39 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 12 bytes, ordinal: 0x4000000a (TSC_ORD_PhysicalPresence)
+    23:52:39 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 10 bytes, return code: 0x00000000 (TPM_SUCCESS)
+
+Activamos presencia fisica:
+
+    $ echo -ne '\x00\xC1\x00\x00\x00\x0C\x40\x00\x00\x0A\x00\x08' | netcat 192.168.1.121 8888 | hd
+
+Habilitamos TPM:
+
+    $ tpm_setenable --force --enable --well-known
+    
+    23:56:21 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 10 bytes, ordinal: 0x0000006f (TPM_ORD_PhysicalEnable)
+    23:56:21 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 10 bytes, return code: 0x00000000 (TPM_SUCCESS)
+    
+Activamos TPM:
+
+    $ tpm_setactive  --active
+    Action requires a reboot to take effect
+    
+	
+    23:57:26 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 11 bytes, ordinal: 0x00000072 (TPM_ORD_PhysicalSetDeactivated)
+    23:57:26 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 10 bytes, return code: 0x00000000 (TPM_SUCCESS)
+
+Reset + startup.
+
+Y take ownership (puede tardar varios segundos).
+
+    $ tpm_takeownership --owner-well-known --srk-well-known
+    $ 
 
 
 
 
+Step 5 TPM_ForceClear
+TPM_ForceClear will clear the compliance data from the TPM. Clearing compliance data from the TPM during
+manufacturing is recommended if compliance devices are purchased. This step is not necessary when
+initializing Real mode devices.
+TPM_ForceClear
+Incoming Operands and Sizes:
+00 C1 00 00 00 0A 00 00 00 5D
 
 
 
 
+    $ echo -ne "\x00\xC1\x00\x00\x00\x0A\x00\x00\x00\x5D" | netcat 192.168.1.121 8888 | hd
+    00000000  00 c4 00 00 00 0a 00 00  00 00                    |..........|
+    0000000a
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    00:14:33 INFO  tpm_tcp.c:51:  --> tag: 0x00c1 (TPM_TAG_RQU_COMMAND), size: 10 bytes, ordinal: 0x0000005d (TPM_ORD_ForceClear)
+    00:14:33 WARN  tpm_i2c.c:58: Device not ready (try 1 of 1000)
+    00:14:33 WARN  tpm_i2c.c:58: Device not ready (try 2 of 1000)
+    00:14:33 INFO  tpm_i2c.c:39:  <-- tag: 0x00c4 (TPM_TAG_RSP_COMMAND), size: 10 bytes, return code: 0x00000000 (TPM_SUCCESS)
 
 
 
